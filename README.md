@@ -9,8 +9,6 @@
 * "outFile": 输出文件，若不填则无输出文件，输出文件路径为与项目的相对路径，例如："out/myFile.bin"
 * "copyToClipboard": 是否将结果拷贝到剪贴板，true 为拷贝，false 为不拷贝
 
-----
-
 ## 功能介绍
 
 #### 数字表示
