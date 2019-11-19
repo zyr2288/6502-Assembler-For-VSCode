@@ -21,7 +21,7 @@
 #### 标签
 
 * 可以定义任何标签，包括中文标签，例如
-![markdown](/zyr2288/6502-Assembler-For-VSCode/blob/master/image/exp1.png)
+![markdown](/zyr2288/6502-Assembler-For-VSCode/image/exp1.png)
 
 
 * 如果在标签之前加一个点（.），则这个标签的使用范围仅仅为本文件内，这样可以在不同的文件定义相同的标签
