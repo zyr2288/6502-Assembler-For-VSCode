@@ -8,8 +8,9 @@
 * "outType": 输出类型，只有 "Buffer"(二进制) 和 "String"(字符串) 两种类型
 * "outFile": 输出文件，若不填则无输出文件，输出文件路径为与项目的相对路径，例如："out/myFile.bin"
 * "copyToClipboard": 是否将结果拷贝到剪贴板，true 为拷贝，false 为不拷贝
-----
+* "autoCompile": 自动编译，在保存文件修改之后自动编译 主文件 的结果，true 为自动编译
 
+----
 ## 功能介绍
 
 ### 局部标签
@@ -169,7 +170,7 @@
 ```
 对应编译的结果相当于：`NOP ASL ASL ASL NOP ASL ASL ASL`
 
-
+----
 ## 意见
 
 欢迎来提意见 https://github.com/zyr2288/6502-Assembler-For-VSCode/issues
