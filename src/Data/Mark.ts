@@ -132,6 +132,28 @@ export class Marks {
 	}
 	//#endregion 查询标记
 
+	//#region 删除标记
+	/**
+	 * 删除标记
+	 * @param markId 标记ID
+	 */
+	DeleteMark(markId: number) {
+		if (!this.marks[markId])
+			return;
+
+		let index = this.markFiles[this.marks[markId].fileIndex].indexOf(this.marks[markId].id);
+		if (index >= 0)
+			this.markFiles[this.marks[markId].fileIndex].splice(index, 1);
+		
+		let mark = this.marks[markId];
+		if (this.marks[markId].childrenIDs.length != 0) {
+			this.marks[markId].type = MarkType.None;
+		} else {
+			delete this.marks[markId];
+		}
+	}
+	//#endregion 删除标记
+
 	//#region 检查文本是否符合标记
 	/**
 	 * 检查文本是否符合标记
