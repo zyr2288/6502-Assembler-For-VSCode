@@ -1,0 +1,80 @@
+{
+	"scopeName": "source.asm.asm6502",
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "asm6502",
+	"patterns": [
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#asmCommand"
+		},
+		{
+			"include": "#comment"
+		},
+		{
+			"include": "#number"
+		},
+		{
+			"include": "#operator"
+		}
+	],
+	"repository": {
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.asm6502",
+					"match": "(?i)(^|\\s+)(LDA|LDX|LDY|STA|STX|STY|TXA|TAX|TYA|TAY|TXS|TSX|ADC|SBC|INC|DEC|INX|DEX|INY|DEY|AND|ORA|EOR|CLC|SEC|CLD|SED|CLV|CLI|SEI|CMP|CPX|CPY|BIT|ASL|LSR|ROL|ROR|PHA|PLA|PHP|PLP|JMP|JSR|NOP|BEQ|BNE|BCS|BCC|BMI|BPL|BVS|BVC|RTS|RTI|BRK)\\s+"
+				}
+			]
+		},
+		"strings": {
+			"name": "string.quoted.double.asm6502",
+			"begin": "\"",
+			"end": "\""
+		},
+		"asmCommand": {
+			"name": "keyword.other.asm6502",
+			"match": "(?i)(^|\\s+)(\\.BASE|\\.ORG|\\.DEF|\\.IF|\\.INCLUDE|\\.INCBIN|\\.ELSEIF|\\.ELSE|\\.ENDIF|\\.IFDEF|\\.IFNDEF|\\.DB|\\.DW|\\.DBG|\\.DWG|\\.ENDD|\\.REPEAT|\\.ENDR|\\.MACRO|\\.ENDM|\\.MSG)\\s+"
+		},
+		"number": {
+			"patterns": [
+				{
+					"name": "constant.numeric.hex.asm6502",
+					"match": "\\$[0-9a-fA-F]+\\b"
+				},
+				{
+					"name": "constant.numeric.binary.asm6502",
+					"match": "\\@[0-1]+\\b"
+				},
+				{
+					"name": "constant.numeric.asm6502",
+					"match": "\\b[0-9]+\\b"
+				},
+				{
+					"name": "keyword.other.asm6502",
+					"begin": "(?i)\\.HEX\\s+",
+					"end": "(?=(;.*))|$",
+					"patterns": [
+						{
+							"name": "constant.numeric.hex.asm6502",
+							"match": "[0-9a-fA-F\\s+]+"
+						}
+					]
+				}
+			]
+		},
+		"operator": {
+			"name": "variable.name.asm6502",
+			"match": "[^\\+\\-\\*\\/\\>\\<\\(\\)\\,\\#\\=\\!\\[\\]]"
+		},
+		"comment": {
+			"name": "comment.asm6502",
+			"begin": ";",
+			"end": "$"
+		}
+	}
+}

@@ -1,5 +1,8 @@
 {
 	"name": "6502-assembler",
+	"author": {
+		"name": "ZENG GE"
+	},
 	"displayName": "6502 Assembler",
 	"description": "",
 	"version": "0.0.1",
@@ -7,10 +10,12 @@
 		"vscode": "^1.52.0"
 	},
 	"categories": [
+		"Programming Languages",
+		"Snippets",
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:6502-assembler.helloWorld"
+		"onLanguage:asm6502"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -18,6 +23,25 @@
 			{
 				"command": "6502-assembler.helloWorld",
 				"title": "Hello World"
+			}
+		],
+		"languages": [
+			{
+				"id": "asm6502",
+				"aliases": [
+					"asm6502"
+				],
+				"extensions": [
+					".65s"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "asm6502",
+				"scopeName": "source.asm.asm6502",
+				"path": "./syntaxes/asm6502.tmLanguage.json"
 			}
 		]
 	},
