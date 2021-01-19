@@ -49,7 +49,7 @@ export class GlobalVar {
 
 		if (add) {
 			this.filePaths.push(filePath);
-			return this.filePaths.length;
+			return this.filePaths.length - 1;
 		} else {
 			return -1;
 		}

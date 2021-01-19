@@ -21,6 +21,8 @@ export class Helper {
 
 		HelperUtils.ReadConfig();
 
+		MyError.BindingErrorEvent(Helper.UpdateError, Helper.ClearAllError);
+
 		for (let i = 0; i < Config.config.projects.length; i++) {
 			if (!vscode.workspace.workspaceFolders)
 				continue;
@@ -50,4 +52,39 @@ export class Helper {
 			Helper.projects[i] = project;
 		}
 	}
+
+	//#region 更新错误提示
+	/**
+	 * 更新错误提示
+	 * @param globalVar 全局变量
+	 * @param error 要更新的错误
+	 */
+	private static UpdateError(error: MyError) {
+		let range = new vscode.Range(error.lineNumber, error.startPosition, error.lineNumber, error.startPosition + error.length);
+		if (!Helper.error.errors[error.filePath])
+			Helper.error.errors[error.filePath] = [];
+
+		Helper.error.errors[error.filePath].push(new vscode.Diagnostic(range, error.message));
+		let fileUri = vscode.Uri.file(error.filePath);
+		Helper.error.errorCollection.set(fileUri, Helper.error.errors[error.filePath]);
+	}
+	//#endregion 更新错误提示
+
+	//#region 清除错误
+	/**
+	 * 清除错误
+	 * @param filePath 文件路径
+	 */
+	private static ClearAllError(filePath?: string) {
+		if (!filePath) {
+			Helper.error.errors = {};
+			Helper.error.errorCollection.clear();
+		} else if (Helper.error.errors[filePath]) {
+			Helper.error.errors[filePath] = [];
+			let uri = vscode.Uri.file(filePath);
+			Helper.error.errorCollection.delete(uri);
+		}
+	}
+	//#endregion 清除错误
+
 }

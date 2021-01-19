@@ -2,7 +2,6 @@ import { Utils } from "./Utils/Utils"
 
 export class MyError {
 
-	static files: string[] = [];
 	static isError = false;
 	static errors: { id: number, error: MyError, isNew: boolean }[] = [];
 	static bindingEvents: ((error: MyError) => void)[] = [];
@@ -105,9 +104,9 @@ export class MyError {
 		this.message = Utils.StringFormat(message, ...params);
 	}
 
-	SetPosition(option?: { fileIndex?: number, lineNumber?: number, startPosition?: number, length?: number }) {
-		if (option?.fileIndex != undefined)
-			this.filePath = MyError.files[option.fileIndex];
+	SetPosition(option?: { filePath?: string, lineNumber?: number, startPosition?: number, length?: number }) {
+		if (option?.filePath != undefined)
+			this.filePath = option.filePath;
 
 		if (option?.lineNumber != undefined)
 			this.lineNumber = option.lineNumber;

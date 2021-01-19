@@ -1,11 +1,31 @@
 import { MarkScope } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
+import { Word } from "../Interface";
 import Language from "../Language";
 import { Asm6502Regex, AsmCommandRegex } from "../MyConst";
 import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
 import { Utils } from "../Utils/Utils";
 import { BaseLine, BaseLineType, BaseParams, InCommand } from "./BaseLine";
+
+/**不允许表达式为空 */
+const CheckExpressionEmpty = [
+	".HEX", ".DBG", ".DWG", ".DB", ".DW",
+	".IF", ".ELSEIF", ".IFDEF", ".IFNDEF",
+	".DEF", ".ORG", ".BASE",
+	".INCLUDE", ".INCBIN",
+	".REPEAT", ".MACRO", ".MSG"
+];
+
+/**不允许有表达式 */
+const CheckHasExpression = [
+	".ELSE", ".ENDIF", "ENDM", "ENDR", "ENDD"
+];
+
+/**不允许有标签 */
+const CheckCommandNoMark = [
+	".ORG", ".BASE", ".MACRO", ".ENDIF", "ENDM", "ENDR", "ENDD"
+];
 
 export class BaseAnalyse {
 
@@ -65,7 +85,7 @@ export class BaseAnalyse {
 			if (Utils.StringIsEmpty(baseLine.expression.text)) {
 				delete baseLine.expression;
 			}
-			// this.CommandAnalyse(params);
+			BaseAnalyse.CommandBaseAnayse(params);
 			return;
 		}
 
@@ -79,7 +99,7 @@ export class BaseAnalyse {
 				baseLine.expression = undefined;
 				let err = new MyError(Language.ErrorMessage.ExpressionMiss);
 				err.SetPosition({
-					fileIndex: baseLine.fileIndex, lineNumber: baseLine.lineNumber,
+					filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
 					startPosition: baseLine.text.startColumn, length: baseLine.text.text.length
 				});
 				MyError.PushError(err);
@@ -108,6 +128,146 @@ export class BaseAnalyse {
 	}
 	//#endregion 基础分割与分析
 
+	//#region 命令初步分析
+	/**
+	 * 命令初步分析
+	 * @param params 基础参数
+	 */
+	private static CommandBaseAnayse(params: BaseParams) {
+		if (!BaseAnalyse.CommandIllegalCheck(params.globalVar.filePaths, params.allLines[params.index]))
+			return;
+
+		if (BaseAnalyse.CheckCommandMatch(params))
+			return;
+	}
+	//#endregion 命令初步分析
+
+	//#region 检查标签是否合理
+	/**
+	 * 检查标签是否合理
+	 * @param baseLine 当前行
+	 */
+	private static CommandIllegalCheck(filePaths: string[], baseLine: BaseLine): boolean {
+		let temp = (<Word>baseLine.comOrOp).text;
+		// 检查命令必须有参数的命令
+		if (!baseLine.expression && CheckExpressionEmpty.includes(temp)) {
+			let error = new MyError(Language.ErrorMessage.ExpressionMiss);
+			error.SetPosition({
+				filePath: filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+				startPosition: (<Word>baseLine.comOrOp).startColumn, length: temp.length
+			});
+			MyError.PushError(error);
+			return false;
+		}
+
+		// 检查不包含参数的命令
+		if (baseLine.expression && CheckHasExpression.includes(temp)) {
+			let error = new MyError(Language.ErrorMessage.DontSupportParameters);
+			error.SetPosition({
+				filePath: filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+				startPosition: (<Word>baseLine.comOrOp).startColumn, length: temp.length
+			});
+			MyError.PushError(error);
+			return false;
+		}
+
+		// 不支持标签的命令
+		if (baseLine.mark && CheckCommandNoMark.includes(temp)) {
+			let error = new MyError(Language.ErrorMessage.CommandNotSupportMark);
+			error.SetPosition({
+				filePath: filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+				startPosition: baseLine.mark.text.startColumn, length: baseLine.mark.text.text.length
+			});
+			MyError.PushError(error);
+			return false;
+		}
+		return true;
+	}
+	//#endregion 检查标签是否合理
+
+	//#region 检查标签的匹配
+	/**
+	 * 检查标签的匹配
+	 * @param params 基本参数
+	 */
+	private static CheckCommandMatch(params: BaseParams): boolean {
+		let baseLine = params.allLines[params.index];
+		let isError = false;
+		switch (baseLine.comOrOp?.text) {
+
+			//#region DBG/DWG 命令
+			case ".DBG":
+			case ".DWG": {
+				let match = BaseAnalyse.FindNextMatch(params.allLines, baseLine.fileIndex, params.index, "(^|\\s+)(\\.ENDD)(\\s+|$)");
+				if (Utils.CompareString(match.match.text, ".ENDM")) {
+					params.allLines.splice(match.index, 1);
+					baseLine.tag = params.allLines.splice(params.index);		// 将所有内容放入Tag
+				} else {
+					params.index = Math.abs(match.index);
+					isError = true;
+				}
+				break;
+			}
+			//#endregion DBG/DWG 命令
+
+			//#region MACRO 命令
+			case ".MACRO": {
+				let index = params.index + 1;
+				while (true) {
+					let match = BaseAnalyse.FindNextMatch(
+						params.allLines,
+						baseLine.fileIndex,
+						index,
+						"(^|\\s+)(\\.D[BW]G|\\.MACRO|\\.INC(LUDE|BIN)|\\.DEF|\\.ENDM)(\\s+|$)");
+
+					if (match.index < 0) {
+						let err = new MyError(Language.ErrorMessage.NotMatchEnd, ".ENDM");
+						err.SetPosition({
+							filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+							startPosition: (<Word>baseLine.comOrOp).startColumn, length: (<Word>baseLine.comOrOp).text.length
+						});
+						MyError.PushError(err);
+						params.index = Math.abs(match.index);
+						baseLine.tag = params.allLines.splice(params.index + 1);		// 将所有内容放入Tag
+						isError = true;
+						break;
+					}
+
+					if (Utils.CompareString(match.match.text, ".DBG", ".DWG", ".INCLUDE", ".INCBIN", ".DEF", ".MACRO")) {
+						let err = new MyError(Language.ErrorMessage.MacroNotSupportCommand, match.match.text.toUpperCase());
+						err.SetPosition({
+							filePath: params.globalVar.filePaths[baseLine.fileIndex],
+							lineNumber: params.allLines[match.index].lineNumber,
+							startPosition: match.match.startColumn,
+							length: match.match.text.length
+						});
+						MyError.PushError(err);
+						params.allLines[match.index].ignore = true;
+						isError = true;
+						index++;
+						continue;
+					}
+
+					if (Utils.CompareString(match.match.text, ".ENDM")) {
+						params.allLines.splice(match.index, 1);
+						baseLine.tag = params.allLines.splice(params.index + 1, match.index - params.index - 1);		// 将所有内容放入Tag
+						break;
+					}
+				}
+				baseLine.ignore = isError;
+				break;
+			}
+			//#endregion MACRO 命令
+
+			case ".IF":
+			case ".IFDEF":
+			case ".IFNDEF":
+				break;
+		}
+		return isError;
+	}
+	//#endregion 检查标签的匹配
+
 	//#region 分割所有文本
 	/**
 	 * 分割所有文本
@@ -124,6 +284,7 @@ export class BaseAnalyse {
 				continue;
 
 			let line: BaseLine = {
+				ignore: false,
 				fileIndex: fileIndex,
 				lineNumber: i,
 				text: Utils.StringTrim(part[0]),
@@ -157,12 +318,40 @@ export class BaseAnalyse {
 			option.markScope = MarkScope.Macro;
 
 		if (!Utils.StringIsEmpty(mark.text)) {
-			baseLine.mark = params.globalVar.marks.AddMark(mark, option);
+			baseLine.mark = params.globalVar.marks.AddMark(mark, params.globalVar.filePaths, option);
 		}
 
 		// if (option.markScope == MarkScope.Macro && baseLine.mark)
 		// params.globalVar.marks.RemoveMark(this.mark, params.globalVar);
 	}
 	//#endregion 获取标签
+
+	//#region 查找匹配行
+	/**
+	 * 查找匹配行
+	 * @param allLines 所有行
+	 * @param findIndex 文件索引
+	 * @param matchReg 匹配的Reg
+	 * @param leftReg 入栈Reg
+	 */
+	private static FindNextMatch(allLines: BaseLine[], fileIndex: number, findIndex: number, matchReg: string): { index: number, match: Word } {
+		let loop = findIndex;
+		let stack = 0;
+		for (; loop < allLines.length; loop++) {
+			if (fileIndex != allLines[loop].fileIndex)
+				return { index: -loop, match: { text: "", startColumn: 0 } };
+
+			let match = new RegExp(matchReg, "ig").exec(allLines[loop].text.text);
+			if (match) {
+				if (stack == 0)
+					return { index: loop, match: Utils.StringTrim(match[0], match.index + allLines[loop].text.startColumn) };
+				else
+					stack--;
+			}
+		}
+		return { index: -(--loop), match: { text: "", startColumn: 0 } };
+	}
+	//#endregion 查找匹配行
+
 }
 

@@ -73,6 +73,19 @@ export class Utils {
 	}
 	//#endregion 将文本格式化
 
+	//#region 比较多个字符串，参数大写，输入会自动转换大写
+	/**
+	 * 比较多个字符串，参数大写，输入会自动转换大写
+	 * @param input 输入的字符串
+	 * @param param 要匹配的所有字符串
+	 * @returns 是否相等
+	 */
+	static CompareString(input: string, ...param: string[]): boolean {
+		if (Utils.StringIsEmpty(input) || param.length == 0)
+			return false;
 
+		return param.indexOf(input.toUpperCase()) > -1;
+	}
+	//#endregion 比较多个字符串，参数大写，输入会自动转换大写
 
 }

@@ -23,15 +23,16 @@ export enum InCommand { None, Macro }
 
 export interface BaseLine {
 	text: Word;
+	lineType: BaseLineType;
+	fileIndex: number;
+	lineNumber: number;
 	mark?: Mark;
 	comOrOp?: Word;
 	expression?: Word;
 	addressType?: AddressType[];
 	tag?: any;
 	comment?: string;
-	lineType: BaseLineType;
-	fileIndex: number;
-	lineNumber: number;
+	ignore:boolean;
 }
 
 export interface BaseParams {

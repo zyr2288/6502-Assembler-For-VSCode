@@ -1,3 +1,4 @@
+import { GlobalVar } from "../GlobalVar";
 import { Word } from "../Interface";
 import Language from "../Language";
 import { TempMarkReg } from "../MyConst";
@@ -53,7 +54,11 @@ export class Marks {
 	 * @param text 要添加的文本
 	 * @param option 选项
 	 */
-	AddMark(text: Word, option: { fileIndex: number, lineNumber: number, markScope?: MarkScope, value?: number, comment?: string }): Mark | undefined {
+	AddMark(
+		text: Word,
+		filePaths: string[],
+		option: { fileIndex: number, lineNumber: number, markScope?: MarkScope, value?: number, comment?: string }
+	): Mark | undefined {
 		if (Utils.StringIsEmpty(text.text))
 			return;
 
@@ -88,7 +93,7 @@ export class Marks {
 			return;
 		}
 
-		let marks = this.SplitMarksAndAdd(markText, option);
+		let marks = this.SplitMarksAndAdd(markText, filePaths, option);
 		return marks;
 	}
 	//#endregion 添加标记
@@ -144,12 +149,25 @@ export class Marks {
 		let index = this.markFiles[this.marks[markId].fileIndex].indexOf(this.marks[markId].id);
 		if (index >= 0)
 			this.markFiles[this.marks[markId].fileIndex].splice(index, 1);
-		
-		let mark = this.marks[markId];
+
 		if (this.marks[markId].childrenIDs.length != 0) {
 			this.marks[markId].type = MarkType.None;
 		} else {
-			delete this.marks[markId];
+			while (true) {
+				let parentId = this.marks[markId].parentId;						// 查找父级ID
+				if (!this.marks[parentId])
+					break;
+
+				let index = this.marks[parentId].childrenIDs.indexOf(markId);	// 父级标签中子集位置
+				if (index >= 0)
+					this.marks[parentId].childrenIDs.splice(index, 1);			// 删除标签
+
+				delete this.marks[markId];										// 删除子标签
+				markId = parentId;
+
+				if (!this.marks[markId] || this.marks[markId].childrenIDs.length != 0 || this.marks[markId].type != MarkType.None)
+					break;
+			}
 		}
 	}
 	//#endregion 删除标记
@@ -203,13 +221,14 @@ export class Marks {
 	//#region 分割标签属性并添加
 	/**
 	 * 分割标签属性并添加
-	 * @param globalVar 全局变量
 	 * @param text 要分割的文本
+	 * @param filePaths 所有文本，用作报错
 	 * @param option 选项，分别是fileIndex和lineNumber
 	 * @returns 最后一个Mark和ID
 	 */
 	private SplitMarksAndAdd(
 		text: Word,
+		filePaths: string[],
 		option: { fileIndex: number, lineNumber: number, value?: number, comment?: string, markScope?: MarkScope }
 	): Mark {
 		let words = Utils.SplitWithRegex(/\./g, 0, text.text, text.startColumn);
@@ -228,18 +247,18 @@ export class Marks {
 
 		let tempMarks: Mark[] = [];
 		for (let i = 0; i < words.length; i++) {
-			if (this.CheckMarkIllegal(words[i])) {
-				let error = new MyError(Language.ErrorMessage.MarkIllegal, words[i].text);
-				error.SetPosition({
-					fileIndex: option.fileIndex, lineNumber: option.lineNumber,
-					startPosition: words[i].startColumn, length: words[i].text.length
-				});
-				MyError.PushError(error);
-			}
-
 			tempText += words[i].text;
 			let id = this.GetMarkId(tempText, scope, option);
 			if (!this.marks[id]) {
+				if (this.CheckMarkIllegal(words[i])) {
+					let error = new MyError(Language.ErrorMessage.MarkIllegal, words[i].text);
+					error.SetPosition({
+						filePath: filePaths[option.fileIndex], lineNumber: option.lineNumber,
+						startPosition: words[i].startColumn, length: words[i].text.length
+					});
+					MyError.PushError(error);
+				}
+
 				let mark: Mark = {
 					id: id,
 					parentId: -1,
@@ -261,13 +280,14 @@ export class Marks {
 					if (!this.markFiles[option.fileIndex].includes(mark.id))
 						this.markFiles[option.fileIndex].push(mark.id);
 				}
+				this.marks[id] = mark;
 				tempMarks.push(mark);
 			} else {
 				if (i == words.length - 1) {
 					if (this.marks[id].type != MarkType.None) {
 						let error = new MyError(Language.ErrorMessage.MarkAlreadyExists, words[i].text);
 						error.SetPosition({
-							fileIndex: option.fileIndex, lineNumber: option.lineNumber,
+							filePath: filePaths[option.fileIndex], lineNumber: option.lineNumber,
 							startPosition: words[i].startColumn, length: words[i].text.length
 						});
 						MyError.PushError(error);
@@ -290,12 +310,11 @@ export class Marks {
 			tempMarks[i].parentId = tempMarks[i - 1].id;
 		}
 
-		// for (let i = 0; i < tempMarks.length; i++) {
-		// 	let id = tempMarks[i].id;
-		// 	if (!this.marks[id]) {
-		// 		this.marks[id] = tempMarks[i];
-		// 	}
-		// }
+		for (let i = 0; i < tempMarks.length - 1; i++) {
+			if (!tempMarks[i].childrenIDs.includes(tempMarks[i + 1].id)) {
+				tempMarks[i].childrenIDs.push(tempMarks[i + 1].id);
+			}
+		}
 
 		return tempMarks[tempMarks.length - 1];
 	}
