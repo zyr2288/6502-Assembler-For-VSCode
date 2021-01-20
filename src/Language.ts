@@ -49,6 +49,8 @@ export default class Language {
 		MacroIsExist: "函数\"{{0}}\"已定义",
 		/**函数内不支持命令"{{0}}" */
 		MacroNotSupportCommand: "函数内不支持命令\"{{0}}\"",
+		/**函数内不支持临时标签 */
+		MacroNotSupportTempMark: "函数内不支持临时标签",
 		/**该编译器命令前不支持标签 */
 		CommandNotSupportMark: "该编译器命令前不支持标签",
 		/**找不到匹配的"{{0}}" */

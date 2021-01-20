@@ -66,6 +66,16 @@ export class Marks {
 		// 增加临时变量
 		let regex = new RegExp(TempMarkReg, "g").exec(markText.text);
 		if (regex) {
+			if (option.markScope == MarkScope.Macro) {
+				let err = new MyError(Language.ErrorMessage.MacroNotSupportTempMark);
+				err.SetPosition({
+					filePath: filePaths[option.fileIndex], lineNumber: option.lineNumber,
+					startPosition: markText.startColumn, length: markText.text.length
+				});
+				MyError.PushError(err);
+				return;
+			}
+
 			let text = markText.text.substring(regex.index + regex[0].length);
 
 			if (!Utils.StringIsEmpty(text) &&

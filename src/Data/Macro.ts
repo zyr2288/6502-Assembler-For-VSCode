@@ -4,6 +4,8 @@ import { Word } from "../Interface";
 export class Macro {
 	/**所有参数，包括临时标签 */
 	parameters: Word[] = [];
+	/**参数的ID */
+	parameterIds: number[] = [];
 	/**输入的参数个数 */
 	parametersCount: number = 0;
 }

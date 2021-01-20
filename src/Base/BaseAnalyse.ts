@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import { Macro } from "../Data/Macro";
 import { MarkScope } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
 import { Word } from "../Interface";
@@ -33,7 +34,6 @@ const CheckIgnoreCommand = {
 	match: [".ENDD", ".ENDIF", ".ENDM"],
 	err: [".DBG/.DWG", ".IF/.IFDEF/.IFNDEF", ".MACRO"]
 }
-
 
 export class BaseAnalyse {
 
@@ -196,6 +196,7 @@ export class BaseAnalyse {
 			//#region INCLUDE/INCBIN 命令
 			case ".INCLUDE":
 			case ".INCBIN": {
+				// 检查表达式是否合理
 				if (!exp.text.startsWith("\"") || !exp.text.endsWith("\"")) {
 					let err = new MyError(Language.ErrorMessage.ExpressionError);
 					err.SetPosition({
@@ -209,6 +210,8 @@ export class BaseAnalyse {
 
 				let path = exp.text.substring(1, exp.text.length - 1);
 				let filePath = Utils.GetFilePath(path, params.globalVar.filePaths[baseLine.fileIndex]);
+
+				// 判断文件是否存在
 				if (!fs.existsSync(filePath.fsPath)) {
 					let err = new MyError(Language.ErrorMessage.FileIsNotExist, path);
 					err.SetPosition({
@@ -220,6 +223,7 @@ export class BaseAnalyse {
 					return;
 				}
 
+				// 如果是编译，插入新的文件
 				if (baseLine.comOrOp.text == ".INCLUDE" && params.globalVar.isCompile) {
 					let allText = fs.readFileSync(filePath.fsPath, { encoding: "utf8" });
 					let index = params.globalVar.GetFileIndex(filePath.fsPath);
@@ -235,6 +239,42 @@ export class BaseAnalyse {
 				break;
 			}
 			//#endregion INCLUDE/INCBIN 命令
+
+			//#region MACRO 命令
+			case ".MACRO": {
+				let part = Utils.SplitWithRegex(/\s+/g, 1, exp.text, exp.startColumn);
+				let macro = new Macro();
+				params.globalVar.marks.AddMark(part[0], params.globalVar.filePaths, option);
+				macro.parametersCount = 0;
+				if (part.length == 2) {
+					part = Utils.SplitWithRegex(/\s*,\s*/g, 0, part[1].text, part[1].startColumn);
+					for (let i = 0; i < part.length; i++) {
+						let id = params.globalVar.marks.GetMarkId(part[i].text, MarkScope.Global, option);
+						let index = macro.parameterIds.indexOf(id);
+						if (index < 0) {
+							macro.parameterIds.push(id);
+							macro.parameters.push(part[i]);
+						} else {
+							let err = new MyError(Language.ErrorMessage.MarkAlreadyExists, macro.parameters[index].text);
+							err.SetPosition({
+								filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+								startPosition: part[i].startColumn, length: part[i].text.length
+							});
+							MyError.PushError(err);
+						}
+					}
+					macro.parametersCount = part.length;
+				}
+
+				let tempParams: BaseParams = { globalVar: params.globalVar, allLines: baseLine.tag, index: 0, inCommand: InCommand.Macro };
+				for (let i = 0; i < tempParams.allLines.length; i++) {
+					tempParams.index = i;
+					BaseAnalyse.Analyse(tempParams);
+					i = tempParams.index;
+				}
+				break;
+			}
+			//#endregion MACRO 命令
 
 		}
 
@@ -372,7 +412,7 @@ export class BaseAnalyse {
 						BaseAnalyse.CheckCommandNoMarkAndExpression(params.globalVar.filePaths, params.allLines[match.index], match.match);
 						params.allLines.splice(match.index, 1);
 
-						// 将所有内容放入Tag，不删除最后一行
+						// 将所有内容放入Tag
 						baseLine.tag = params.allLines.splice(params.index + 1, match.index - params.index - 1);
 						break;
 					}
@@ -382,7 +422,7 @@ export class BaseAnalyse {
 			}
 			//#endregion MACRO 命令
 
-			//#region IF/IFDEF/IFNDEF命令
+			//#region IF/IFDEF/IFNDEF 命令
 			case ".IF":
 			case ".IFDEF":
 			case ".IFNDEF": {
@@ -427,9 +467,9 @@ export class BaseAnalyse {
 				baseLine.ignore = isError;
 				break;
 			}
-			//#endregion IF/IFDEF/IFNDEF命令
+			//#endregion IF/IFDEF/IFNDEF 命令
 
-			//#region REPEAT命令
+			//#region REPEAT 命令
 			case ".REPEAT": {
 				let index = params.index + 1;
 				let stack = 0;
@@ -471,7 +511,7 @@ export class BaseAnalyse {
 				}
 				break;
 			}
-			//#endregion REPEAT命令
+			//#endregion REPEAT 命令
 
 		}
 		return isError;

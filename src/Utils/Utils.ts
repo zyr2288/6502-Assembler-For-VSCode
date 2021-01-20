@@ -92,7 +92,6 @@ export class Utils {
 	}
 	//#endregion 比较多个字符串，参数大写，输入会自动转换大写
 
-
 	/***** 文件工具 *****/
 
 	//#region 获取文件路径Uri
