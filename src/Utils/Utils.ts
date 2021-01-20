@@ -1,4 +1,7 @@
+import * as vscode from "vscode";
+import * as path from "path";
 import { Word } from "../Interface";
+
 
 /**工具类 */
 export class Utils {
@@ -7,6 +10,7 @@ export class Utils {
 	/**
 	 * 文本是否为空
 	 * @param text 要检测的文本
+	 * @returns true为空白字符串
 	 */
 	static StringIsEmpty(text: string) {
 		if (!text || text.trim() == "")
@@ -87,5 +91,25 @@ export class Utils {
 		return param.indexOf(input.toUpperCase()) > -1;
 	}
 	//#endregion 比较多个字符串，参数大写，输入会自动转换大写
+
+
+	/***** 文件工具 *****/
+
+	//#region 获取文件路径Uri
+	/**
+	 * 获取文件路径Uri
+	 * @param target 目标相对或绝对路径
+	 * @param basePath 拼接的基础路径
+	 */
+	static GetFilePath(target:string, basePath:string) {
+		if (/^([a-zA-Z]\:)?\//.test(target)) {
+			return vscode.Uri.file(target);
+		} else {
+			return vscode.Uri.file(
+				path.join(path.dirname(basePath), target)
+			);
+		}
+	}
+	//#endregion 获取文件路径Uri
 
 }

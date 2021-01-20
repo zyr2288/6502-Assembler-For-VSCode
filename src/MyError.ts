@@ -19,6 +19,7 @@ export class MyError {
 		if (!temp) {
 			MyError.errors.push({ id: id, error: error, isNew: true });
 		}
+		console.log(error);
 	}
 	//#endregion 提交错误
 

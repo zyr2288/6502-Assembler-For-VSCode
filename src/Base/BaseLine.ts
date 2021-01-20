@@ -32,7 +32,7 @@ export interface BaseLine {
 	addressType?: AddressType[];
 	tag?: any;
 	comment?: string;
-	ignore:boolean;
+	ignore: boolean;
 }
 
 export interface BaseParams {

@@ -44,7 +44,7 @@ export class Marks {
 	/**所有标记 */
 	marks: { [markId: number]: Mark } = {};
 	/**文件内的标记ID */
-	markFiles: { [fileIndex: number]: number[] } = [];
+	markFiles: number[][] = [];
 	/**临时标记 */
 	tempMarks: { [fileIndex: number]: Mark[] } = {};
 
@@ -171,6 +171,22 @@ export class Marks {
 		}
 	}
 	//#endregion 删除标记
+
+	//#region 删除某个文件ID内的所有Mark
+	/**
+	 * 删除某个文件ID内的所有Mark
+	 * @param fileIndex 文件ID
+	 */
+	DeleteFileMarks(fileIndex: number) {
+		if (!this.markFiles[fileIndex])
+			return;
+
+		let marks = this.markFiles[fileIndex];
+		for (let i = 0; i < marks.length; i++) {
+			this.DeleteMark(marks[i]);
+		}
+	}
+	//#endregion 删除某个文件ID内的所有Mark
 
 	//#region 检查文本是否符合标记
 	/**
