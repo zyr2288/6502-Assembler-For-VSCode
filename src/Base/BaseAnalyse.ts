@@ -181,6 +181,9 @@ export class BaseAnalyse {
 		}
 
 		let option = { fileIndex: baseLine.fileIndex, lineNumber: baseLine.lineNumber, comment: baseLine.comment, markScope: <MarkScope | undefined>undefined };
+		if (params.inMacro)
+			option.markScope = MarkScope.Macro;
+
 		// 存在自定义函数
 		if (params.globalVar.marks.macroRegex) {
 			// 查找是否包含函数信息
@@ -339,7 +342,7 @@ export class BaseAnalyse {
 			}
 			//#endregion DB/DW 命令
 
-			
+
 
 		}
 	}

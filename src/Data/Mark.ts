@@ -3,6 +3,7 @@ import Language from "../Language";
 import { TempMarkReg } from "../MyConst";
 import { MyError } from "../MyError";
 import { Utils } from "../Utils/Utils";
+import { Macro } from "./Macro";
 
 /**标签作用域 */
 export enum MarkScope { None, Global, Local, Macro }
@@ -66,7 +67,7 @@ export class Marks {
 	 */
 	AddMark(
 		text: Word,
-		option: { fileIndex: number, lineNumber: number, markScope?: MarkScope, value?: number, comment?: string }
+		option: { fileIndex: number, lineNumber: number, macro?: Macro, value?: number, comment?: string }
 	): Mark | undefined {
 		if (Utils.StringIsEmpty(text.text))
 			return;
@@ -75,7 +76,7 @@ export class Marks {
 		// 增加临时变量
 		let regex = new RegExp(TempMarkReg, "g").exec(markText.text);
 		if (regex) {
-			if (option.markScope == MarkScope.Macro) {
+			if (option.macro) {
 				let err = new MyError(Language.ErrorMessage.MacroNotSupportTempMark);
 				err.SetPosition({
 					filePath: this.filePaths[option.fileIndex], lineNumber: option.lineNumber,
@@ -112,6 +113,12 @@ export class Marks {
 			return;
 		}
 
+		if(option.macro) {
+			let mark = {
+				
+			}
+		}
+
 		let marks = this.SplitMarksAndAdd(markText, option);
 		return marks;
 	}
@@ -123,7 +130,7 @@ export class Marks {
 	 * @param text 
 	 * @param option 
 	 */
-	FindMark(text: string, option: { fileIndex: number, lineNumber: number, markScope?: MarkScope }): Mark | undefined {
+	FindMark(text: string, option: { fileIndex: number, lineNumber: number, macro?: Macro }): Mark | undefined {
 		if (Utils.StringIsEmpty(text))
 			return;
 
@@ -145,8 +152,23 @@ export class Marks {
 		}
 
 		let markScope = text.startsWith(".") ? MarkScope.Local : MarkScope.Global;
-		if (option.markScope)
-			markScope = option.markScope;
+		if (option.macro) {
+			let id = this.GetMarkId(text, markScope, option);
+			let word = option.macro.FindParameter(id);
+			if (word) {
+				let mark: Mark = {
+					id: id,
+					parentId: -1,
+					childrenIDs: [],
+					text: word,
+					fileIndex: option.fileIndex,
+					lineNumber: option.lineNumber,
+					type: MarkType.Defined,
+					scope: MarkScope.Local
+				}
+				return mark;
+			}
+		}
 
 		let id = this.GetMarkId(text, markScope, option);
 		if (!this.marks[id] || this.marks[id].type == MarkType.None)

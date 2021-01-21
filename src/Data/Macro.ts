@@ -22,4 +22,16 @@ export class Macro {
 
 		return false;
 	}
+
+	/**
+	 * 查找参数
+	 * @param id 参数ID
+	 */
+	FindParameter(id: number): Word | undefined {
+		let index = this.parameterIds.indexOf(id);
+		if(index < 0)
+			return;
+
+		return this.parameters[index];
+	}
 }
