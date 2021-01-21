@@ -19,6 +19,7 @@ export class Project {
 
 /**全局变量 */
 export class GlobalVar {
+
 	/**编译地址 */
 	address?: number;
 	/**基础地址 */
@@ -28,7 +29,7 @@ export class GlobalVar {
 	/**所有文件路径 */
 	filePaths: string[] = [];
 	/**所有标记 */
-	marks: Marks = new Marks();
+	marks: Marks = new Marks(this.filePaths);
 	/**是否是编译状态 */
 	isCompile: boolean = false;
 	/**编译状态，0为第一次，2为最后一次 */

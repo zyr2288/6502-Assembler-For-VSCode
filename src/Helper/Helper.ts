@@ -47,7 +47,7 @@ export class Helper {
 				baseLines = baseLines.concat(temp);
 			}
 
-			BaseAnalyse.MainAnalyse(baseLines);
+			BaseAnalyse.MainAnalyse(project.globalVar, baseLines);
 			MyError.UpdateError();
 			Helper.projects[i] = project;
 		}

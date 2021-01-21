@@ -1,3 +1,4 @@
+import { Macro } from "../Data/Macro";
 import { Mark } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
 import { Word } from "../Interface";
@@ -39,5 +40,5 @@ export interface BaseParams {
 	globalVar: GlobalVar;
 	allLines: BaseLine[];
 	index: number;
-	inCommand: InCommand;
+	inMacro?: Macro;
 }

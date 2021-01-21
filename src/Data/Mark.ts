@@ -1,4 +1,3 @@
-import { GlobalVar } from "../GlobalVar";
 import { Word } from "../Interface";
 import Language from "../Language";
 import { TempMarkReg } from "../MyConst";
@@ -8,7 +7,7 @@ import { Utils } from "../Utils/Utils";
 /**标签作用域 */
 export enum MarkScope { None, Global, Local, Macro }
 /**标签类型 */
-export enum MarkType { None, Defined, Variable }
+export enum MarkType { None, Defined, Variable, Macro }
 
 //#region 单个标签
 /**单个标签 */
@@ -41,12 +40,23 @@ export interface Mark {
 /**所有标签类 */
 export class Marks {
 
+	/**所有文件路径，用于报错 */
+	private readonly filePaths: string[];
 	/**所有标记 */
 	marks: { [markId: number]: Mark } = {};
 	/**文件内的标记ID */
 	markFiles: number[][] = [];
 	/**临时标记 */
 	tempMarks: { [fileIndex: number]: Mark[] } = {};
+
+	/**所有自定义函数名称 */
+	private macroNames: string[] = [];
+	/**查找自定义函数的正则表达式字符串 */
+	macroRegex: string | null = null;
+
+	constructor(filePaths: string[]) {
+		this.filePaths = filePaths;
+	}
 
 	//#region 添加标记
 	/**
@@ -56,7 +66,6 @@ export class Marks {
 	 */
 	AddMark(
 		text: Word,
-		filePaths: string[],
 		option: { fileIndex: number, lineNumber: number, markScope?: MarkScope, value?: number, comment?: string }
 	): Mark | undefined {
 		if (Utils.StringIsEmpty(text.text))
@@ -69,7 +78,7 @@ export class Marks {
 			if (option.markScope == MarkScope.Macro) {
 				let err = new MyError(Language.ErrorMessage.MacroNotSupportTempMark);
 				err.SetPosition({
-					filePath: filePaths[option.fileIndex], lineNumber: option.lineNumber,
+					filePath: this.filePaths[option.fileIndex], lineNumber: option.lineNumber,
 					startPosition: markText.startColumn, length: markText.text.length
 				});
 				MyError.PushError(err);
@@ -103,7 +112,7 @@ export class Marks {
 			return;
 		}
 
-		let marks = this.SplitMarksAndAdd(markText, filePaths, option);
+		let marks = this.SplitMarksAndAdd(markText, option);
 		return marks;
 	}
 	//#endregion 添加标记
@@ -172,6 +181,8 @@ export class Marks {
 				if (index >= 0)
 					this.marks[parentId].childrenIDs.splice(index, 1);			// 删除标签
 
+				this.UpdateMacroNames(this.marks[markId].text.text, "Remove");
+
 				delete this.marks[markId];										// 删除子标签
 				markId = parentId;
 
@@ -181,6 +192,33 @@ export class Marks {
 		}
 	}
 	//#endregion 删除标记
+
+	//#region 更新自定义函数名称
+	/**
+	 * 更新自定义函数名称
+	 */
+	UpdateMacroNames(name: string, add: "Add" | "Remove") {
+		let index = this.macroNames.indexOf(name);
+
+		if (index < 0 && add == "Add") {
+			this.macroNames.push(name);
+		} else if (index >= 0 && add == "Remove") {
+			this.macroNames.splice(index, 1);
+		}
+
+		if (this.macroNames.length == 0) {
+			this.macroRegex = null;
+			return;
+		}
+
+		this.macroRegex = "(^|\\s+)(";
+		this.macroNames.forEach((value) => {
+			this.macroRegex += `${value}|`;
+		});
+		this.macroRegex = this.macroRegex.substring(0, this.macroRegex.length - 1);
+		this.macroRegex += ")(\\s+|$)";
+	}
+	//#endregion 更新自定义函数名称
 
 	//#region 删除某个文件ID内的所有Mark
 	/**
@@ -208,7 +246,7 @@ export class Marks {
 		if (Utils.StringIsEmpty(text.text))
 			return true;
 
-		if (/(^\d)|\+|\-|\*|\/|\=|"|\$|!|@|#|~|\,|\s|\[|\]|\(|\)/g.test(text.text)) {
+		if (/(^\d)|\+|\-|\*|\/|\=|"|\$|!|@|#|~|\,|\.|\s|\[|\]|\(|\)/g.test(text.text)) {
 			return true;
 		}
 		return false;
@@ -254,7 +292,6 @@ export class Marks {
 	 */
 	private SplitMarksAndAdd(
 		text: Word,
-		filePaths: string[],
 		option: { fileIndex: number, lineNumber: number, value?: number, comment?: string, markScope?: MarkScope }
 	): Mark {
 		let words = Utils.SplitWithRegex(/\./g, 0, text.text, text.startColumn);
@@ -279,7 +316,7 @@ export class Marks {
 				if (this.CheckMarkIllegal(words[i])) {
 					let error = new MyError(Language.ErrorMessage.MarkIllegal, words[i].text);
 					error.SetPosition({
-						filePath: filePaths[option.fileIndex], lineNumber: option.lineNumber,
+						filePath: this.filePaths[option.fileIndex], lineNumber: option.lineNumber,
 						startPosition: words[i].startColumn, length: words[i].text.length
 					});
 					MyError.PushError(error);
@@ -313,7 +350,7 @@ export class Marks {
 					if (this.marks[id].type != MarkType.None) {
 						let error = new MyError(Language.ErrorMessage.MarkAlreadyExists, words[i].text);
 						error.SetPosition({
-							filePath: filePaths[option.fileIndex], lineNumber: option.lineNumber,
+							filePath: this.filePaths[option.fileIndex], lineNumber: option.lineNumber,
 							startPosition: words[i].startColumn, length: words[i].text.length
 						});
 						MyError.PushError(error);

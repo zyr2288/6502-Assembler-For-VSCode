@@ -95,11 +95,11 @@ export class HelperUtils {
 			return;
 
 		MyError.ClearFileError(project.project.globalVar.filePaths[project.index]);
-		
+
 		project.project.globalVar.marks.DeleteFileMarks(project.project.globalVar.GetFileIndex(fileName));
 
 		let lines = BaseAnalyse.BaseAnalyse(project.project.globalVar, fileName, context);
-		BaseAnalyse.MainAnalyse(lines);
+		BaseAnalyse.MainAnalyse(project.project.globalVar, lines);
 		MyError.UpdateError();
 	}
 	//#endregion 刷新指定文件内的已定义变量

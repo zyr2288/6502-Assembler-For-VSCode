@@ -33,7 +33,12 @@ interface ExpressionPart {
 export class ExpressionUtils {
 
 	//#region 检查表达式正误
-	/**检查表达式正误 */
+	/**
+	 * 检查表达式正误
+	 * @param text 检查的表达式
+	 * @param option 选项
+	 * @returns false为错误
+	 */
 	static CheckExpressionCurrect(
 		text: Word,
 		option: { globalVar: GlobalVar, fileIndex: number, lineNumber: number, replaceMark?: ReplaceMark[] }

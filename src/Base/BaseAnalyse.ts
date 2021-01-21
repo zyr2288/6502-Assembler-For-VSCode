@@ -1,14 +1,15 @@
 import * as fs from "fs";
 import { Macro } from "../Data/Macro";
-import { MarkScope } from "../Data/Mark";
+import { Mark, MarkScope, MarkType } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
-import { Word } from "../Interface";
+import { ReplaceMark, Word, TagDataGroup } from "../Interface";
 import Language from "../Language";
 import { Asm6502Regex, AsmCommandRegex } from "../MyConst";
 import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
+import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { Utils } from "../Utils/Utils";
-import { BaseLine, BaseLineType, BaseParams, InCommand } from "./BaseLine";
+import { BaseLine, BaseLineType, BaseParams } from "./BaseLine";
 
 /**不允许表达式为空 */
 const CheckExpressionEmpty = [
@@ -26,7 +27,7 @@ const CheckHasExpression = [
 
 /**不允许有标签 */
 const CheckCommandNoMark = [
-	".DEF", ".ORG", ".BASE", ".MACRO", ".ENDIF", "ENDM", "ENDR", "ENDD"
+	".DBG", ".DWG", ".DEF", ".ORG", ".BASE", ".MACRO", ".ENDIF", "ENDM", "ENDR", "ENDD"
 ];
 
 /**检查是否已忽略却出现的命令 */
@@ -46,11 +47,14 @@ export class BaseAnalyse {
 	 */
 	static BaseAnalyse(globalVar: GlobalVar, filePath: string, context: string): BaseLine[] {
 
-		let params: BaseParams = { globalVar: globalVar, allLines: <BaseLine[]>[], index: 0, inCommand: InCommand.None };
+		let params: BaseParams = { globalVar: globalVar, allLines: <BaseLine[]>[], index: 0 };
 		let fileIndex = globalVar.GetFileIndex(filePath);
 		params.allLines = BaseAnalyse.SplitAllText(context, fileIndex);
 
 		for (let j = 0; j < params.allLines.length; j++) {
+			if (params.allLines[j].ignore)
+				continue;
+
 			params.index = j;
 			BaseAnalyse.Analyse(params);
 			j = params.index;
@@ -64,13 +68,23 @@ export class BaseAnalyse {
 	 * 进阶分析
 	 * @param baseLines 所有行
 	 */
-	static MainAnalyse(baseLines: BaseLine[]) {
+	static MainAnalyse(globalVar: GlobalVar, baseLines: BaseLine[]) {
 		if (MyError.isError)
 			return;
 
+		let params: BaseParams = { globalVar: globalVar, allLines: baseLines, index: 0 }
+		for (let i = 0; i < baseLines.length; i++) {
+			if (baseLines[i].ignore)
+				continue;
 
+			params.index = i;
+			BaseAnalyse.Analyse2(params);
+			i = params.index;
+		}
 	}
 	//#endregion 进阶分析
+
+	/**分析程序 */
 
 	//#region 基础分割与分析
 	/**
@@ -133,27 +147,203 @@ export class BaseAnalyse {
 				return;
 			}
 			let option = { globalVar: params.globalVar, fileIndex: baseLine.fileIndex, lineNumber: baseLine.lineNumber };
-			// ExpressionUtils.CheckExpressionCurrect(baseLine.expression, option);
-			// let mark = MarkUtils.FindMark(params.globalVar, tempMark, option);
-			// if (mark) {
-			// 	if (mark.type == MarkType.Defined) {
-			// 		let err = new MyError(Language.ErrorMessage.MarkIsDefined, tempMark.text);
-			// 		err.SetPosition({
-			// 			filePath: params.globalVar.filePaths[this.fileIndex], lineNumber: this.lineNumber,
-			// 			startPosition: tempMark.startColumn, length: tempMark.text.length
-			// 		});
-			// 		MyError.PushError(err);
-			// 	}
-			// } else {
-			// 	this.mark = MarkUtils.AddMark(params.globalVar, tempMark, option);
-			// 	if (this.mark)
-			// 		this.mark.type = MarkType.Variable;
-			// }
+			let mark = params.globalVar.marks.FindMark(tempMark.text, option);
+			if (mark) {
+				if (mark.type == MarkType.Defined) {
+					let err = new MyError(Language.ErrorMessage.MarkIsDefined, tempMark.text);
+					err.SetPosition({
+						filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+						startPosition: tempMark.startColumn, length: tempMark.text.length
+					});
+					MyError.PushError(err);
+				}
+			} else {
+				baseLine.mark = params.globalVar.marks.AddMark(tempMark, option);
+				if (baseLine.mark)
+					baseLine.mark.type = MarkType.Variable;
+			}
 
 			return;
 		}
 	}
 	//#endregion 基础分割与分析
+
+	//#region 进一步分析
+	/**
+	 * 进一步分析
+	 * 主要分析是不是自定义函数或者标签
+	 * @param params 
+	 */
+	private static Analyse2(params: BaseParams) {
+		let baseLine = params.allLines[params.index];
+		if (baseLine.lineType != BaseLineType.None) {
+			return;
+		}
+
+		let option = { fileIndex: baseLine.fileIndex, lineNumber: baseLine.lineNumber, comment: baseLine.comment, markScope: <MarkScope | undefined>undefined };
+		// 存在自定义函数
+		if (params.globalVar.marks.macroRegex) {
+			// 查找是否包含函数信息
+			let match = new RegExp(params.globalVar.marks.macroRegex, "g").exec(baseLine.text.text);
+			if (match) {
+				BaseAnalyse.GetMark(match.index, params);
+				baseLine.comOrOp = Utils.StringTrim(match[0], baseLine.text.startColumn + match.index);
+
+				let macro: Macro = (<Mark>params.globalVar.marks.FindMark(baseLine.comOrOp.text, option)).tag;
+				baseLine.expression = Utils.StringTrim(
+					baseLine.text.text.substring(match[0].length + match.index),
+					match[0].length + match.index + baseLine.text.startColumn
+				);
+
+				let length = 0;
+				let part: Word[] = [];
+				if (baseLine.expression && Utils.StringIsEmpty(baseLine.expression.text)) {
+					delete baseLine.expression;
+				} else {
+					part = Utils.SplitWithRegex(/\s*\,\s*/g, 0, baseLine.expression.text, baseLine.expression.startColumn);
+					length = part.length;
+				}
+
+				if (length != macro.parametersCount) {
+					let err = new MyError(Language.ErrorMessage.MacroParamtersNotMatch, macro.parametersCount.toString());
+					err.SetPosition({
+						filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+						startPosition: (<Word>baseLine.comOrOp).startColumn, length: (<Word>baseLine.comOrOp).text.length
+					});
+					MyError.PushError(err);
+					baseLine.ignore = true;
+					return;
+				}
+				baseLine.tag = part;
+				baseLine.lineType = BaseLineType.Macro;
+				return;
+			}
+		}
+
+		let part = Utils.SplitWithRegex(/\s+/g, 2, baseLine.text.text);
+		if (part.length == 2 || part.length == 3) {
+			let err = new MyError(Language.ErrorMessage.MacroIsNotExist, part[1].text);
+			err.SetPosition({
+				filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+				startPosition: part[1].startColumn, length: part[1].text.length
+			});
+			MyError.PushError(err);
+		}
+		baseLine.mark = params.globalVar.marks.AddMark(part[0], option);
+		baseLine.lineType = BaseLineType.OnlyMark;
+		baseLine.ignore = true;
+		return;
+	}
+	//#endregion 进一步分析
+
+	//#region 最后分析
+	/**
+	 * 最后分析
+	 * 主要分析表达式是否正确
+	 * @param params 基础参数
+	 */
+	private static Anaylse3(params: BaseParams) {
+		let baseLine = params.allLines[params.index];
+		let option = {
+			globalVar: params.globalVar,
+			fileIndex: baseLine.fileIndex,
+			lineNumber: baseLine.lineNumber,
+			replaceMark: <ReplaceMark[] | undefined>undefined
+		};
+		switch (baseLine.lineType) {
+
+			//#region 汇编指令
+			case BaseLineType.Instrument: {
+				if (baseLine.expression)
+					ExpressionUtils.CheckExpressionCurrect(baseLine.expression, option);
+
+				break;
+			}
+			//#endregion 汇编指令
+
+			//#region 赋值
+			case BaseLineType.Assign: {
+				if (!baseLine.expression) {
+					let err = new MyError(Language.ErrorMessage.ExpressionMiss);
+					err.SetPosition({
+						filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+						startPosition: baseLine.text.startColumn, length: baseLine.text.text.length
+					});
+					MyError.PushError(err);
+					break;
+				}
+				ExpressionUtils.CheckExpressionCurrect(baseLine.expression, option);
+				break;
+			}
+			//#endregion 赋值
+
+			//#region 自定义函数
+			case BaseLineType.Macro: {
+				let words: Word[] = baseLine.tag;
+				if (words.length == 0)
+					return;
+
+				words.forEach((value) => {
+					ExpressionUtils.CheckExpressionCurrect(value, option);
+				});
+				break;
+			}
+			//#endregion 自定义函数
+
+			//#region 空行
+			case BaseLineType.None: {
+				console.error("为啥还有空行？");
+				console.log(baseLine);
+				break;
+			}
+			//#endregion 空行
+
+		}
+
+		let exp = <Word>baseLine.expression;
+		// 编译器命令分析
+		switch (baseLine.comOrOp?.text) {
+
+			//#region DBG/DWG 命令
+			case ".DBG":
+			case ".DWG": {
+				if (!baseLine.tag)
+					break;
+
+				let lines: BaseLine[] = baseLine.tag;
+				let tagPart: TagDataGroup[] = [];
+				for (let i = 0; i < lines.length; i++) {
+					let part = Utils.SplitWithRegex(/\s*\,\s*/g, 0, lines[i].text.text, lines[i].text.startColumn);
+					if (Utils.StringIsEmpty(part[part.length - 1].text))
+						part.splice(part.length - 1, 1);
+
+					option.lineNumber = lines[i].lineNumber;
+					for (let j = 0; j < part.length; j++) {
+						if (ExpressionUtils.CheckExpressionCurrect(part[j], option))
+							tagPart.push({ lineNumber: option.lineNumber, word: part[j] });
+					}
+				}
+				baseLine.tag = tagPart;		// 分析完毕，把所有Part存起来，方便给AsmLine直接计算
+				break;
+			}
+			//#endregion DBG/DWG 命令
+
+			//#region DB/DW 命令
+			case ".DB":
+			case ".DW": {
+				let part = Utils.SplitWithRegex(/\s*\,\s*/g, 0, exp.text, exp.startColumn);
+				part.forEach(value => {
+					ExpressionUtils.CheckExpressionCurrect(value, option);
+				});
+				break;
+			}
+			//#endregion DB/DW 命令
+
+			
+
+		}
+	}
+	//#endregion 最后分析
 
 	/***** 初步命令检查 *****/
 
@@ -177,7 +367,7 @@ export class BaseAnalyse {
 			//#region DEF 命令
 			case ".DEF": {
 				let part = Utils.SplitWithRegex(/\s+/g, 1, exp.text, exp.startColumn);
-				baseLine.mark = params.globalVar.marks.AddMark(part[0], params.globalVar.filePaths, option);
+				baseLine.mark = params.globalVar.marks.AddMark(part[0], option);
 				if (part.length != 2) {
 					let err = new MyError(Language.ErrorMessage.ExpressionMiss);
 					err.SetPosition({
@@ -243,30 +433,69 @@ export class BaseAnalyse {
 			//#region MACRO 命令
 			case ".MACRO": {
 				let part = Utils.SplitWithRegex(/\s+/g, 1, exp.text, exp.startColumn);
+				if (params.globalVar.marks.CheckMarkIllegal(part[0])) {
+					let err = new MyError(Language.ErrorMessage.MarkIllegal, part[0].text);
+					err.SetPosition({
+						filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+						startPosition: part[0].startColumn, length: part[0].text.length
+					});
+					MyError.PushError(err);
+					baseLine.ignore = true;
+					break;
+				}
+
+				let id = params.globalVar.marks.GetMarkId(part[0].text, MarkScope.Global, option);
+				if (params.globalVar.marks.marks[id]) {
+					let err = new MyError(Language.ErrorMessage.MarkAlreadyExists, part[0].text);
+					err.SetPosition({
+						filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+						startPosition: part[0].startColumn, length: part[0].text.length
+					});
+					MyError.PushError(err);
+					baseLine.ignore = true;
+					break;
+				}
+
+				let mark: Mark = {
+					id: params.globalVar.marks.GetMarkId(part[0].text, MarkScope.Global, option),
+					parentId: -1,
+					fileIndex: baseLine.fileIndex,
+					lineNumber: baseLine.lineNumber,
+					childrenIDs: [],
+					scope: MarkScope.Global,
+					text: part[0],
+					type: MarkType.Macro
+				};
+
+				params.globalVar.marks.marks[id] = mark;
+				if (!params.globalVar.marks.markFiles[baseLine.fileIndex])
+					params.globalVar.marks.markFiles[baseLine.fileIndex] = [];
+
+				params.globalVar.marks.markFiles[baseLine.fileIndex].push(id);
+				params.globalVar.marks.UpdateMacroNames(part[0].text, "Add");
+
+				mark.type = MarkType.Macro;
 				let macro = new Macro();
-				params.globalVar.marks.AddMark(part[0], params.globalVar.filePaths, option);
 				macro.parametersCount = 0;
+				mark.tag = macro;
 				if (part.length == 2) {
 					part = Utils.SplitWithRegex(/\s*,\s*/g, 0, part[1].text, part[1].startColumn);
 					for (let i = 0; i < part.length; i++) {
 						let id = params.globalVar.marks.GetMarkId(part[i].text, MarkScope.Global, option);
-						let index = macro.parameterIds.indexOf(id);
-						if (index < 0) {
-							macro.parameterIds.push(id);
-							macro.parameters.push(part[i]);
-						} else {
-							let err = new MyError(Language.ErrorMessage.MarkAlreadyExists, macro.parameters[index].text);
+						if (!macro.AddParameter(part[i], id)) {
+							let err = new MyError(Language.ErrorMessage.MarkAlreadyExists, part[i].text);
 							err.SetPosition({
 								filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
 								startPosition: part[i].startColumn, length: part[i].text.length
 							});
 							MyError.PushError(err);
+							baseLine.ignore = true;
 						}
 					}
 					macro.parametersCount = part.length;
 				}
 
-				let tempParams: BaseParams = { globalVar: params.globalVar, allLines: baseLine.tag, index: 0, inCommand: InCommand.Macro };
+				let tempParams: BaseParams = { globalVar: params.globalVar, allLines: baseLine.tag, index: 0, inMacro: macro };
 				for (let i = 0; i < tempParams.allLines.length; i++) {
 					tempParams.index = i;
 					BaseAnalyse.Analyse(tempParams);
@@ -275,6 +504,28 @@ export class BaseAnalyse {
 				break;
 			}
 			//#endregion MACRO 命令
+
+			//#region DBG/DWG 命令
+			case ".DBG":
+			case ".DWG": {
+				baseLine.mark = params.globalVar.marks.AddMark(exp, option);
+				break;
+			}
+			//#endregion DBG/DWG 命令
+
+			//#region HEX 命令
+			case ".HEX": {
+				if (!/^[0-9a-fA-F\s]+$/.test(exp.text)) {
+					let error = new MyError(Language.ErrorMessage.ExpressionError);
+					error.SetPosition({
+						filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+						startPosition: exp.startColumn, length: exp.text.length
+					});
+					MyError.PushError(error);
+				}
+				baseLine.ignore = true;
+			}
+			//#endregion HEX 命令
 
 		}
 
@@ -566,15 +817,30 @@ export class BaseAnalyse {
 			comment: baseLine.comment, markScope: <MarkScope | undefined>undefined
 		};
 
-		if (params.inCommand == InCommand.Macro)
-			option.markScope = MarkScope.Macro;
+		// 如果有函数，将标签添加至函数内
+		if (params.inMacro) {
+			if (Utils.StringIsEmpty(mark.text))
+				return;
 
-		if (!Utils.StringIsEmpty(mark.text)) {
-			baseLine.mark = params.globalVar.marks.AddMark(mark, params.globalVar.filePaths, option);
+			option.markScope = MarkScope.Macro;
+			if (params.globalVar.marks.CheckMarkIllegal(mark))
+				return;
+
+			let id = params.globalVar.marks.GetMarkId(mark.text, MarkScope.Global, option);
+			if (!params.inMacro.AddParameter(mark, id)) {
+				let err = new MyError(Language.ErrorMessage.MarkAlreadyExists, mark.text);
+				err.SetPosition({
+					filePath: params.globalVar.filePaths[baseLine.fileIndex], lineNumber: baseLine.lineNumber,
+					startPosition: mark.startColumn, length: mark.text.length
+				});
+				MyError.PushError(err);
+			}
+			return;
 		}
 
-		// if (option.markScope == MarkScope.Macro && baseLine.mark)
-		// params.globalVar.marks.RemoveMark(this.mark, params.globalVar);
+		if (!Utils.StringIsEmpty(mark.text)) {
+			baseLine.mark = params.globalVar.marks.AddMark(mark, option);
+		}
 	}
 	//#endregion 获取标签
 
