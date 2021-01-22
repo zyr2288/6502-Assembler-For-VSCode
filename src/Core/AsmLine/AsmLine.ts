@@ -32,8 +32,14 @@ export interface AsmLineCommandMacroTag {
 	lines: AsmLine[];
 }
 
+export interface AsmLineMacroTag {
+	mark?: Mark;
+	command: Word;
+	params: Word[];
+}
+
 /**编译行类型 */
-export enum AsmLineType { None, Instrument, Command, Assign, Macro }
+export enum AsmLineType { None, Instrument, Command, Assign, Macro, OnlyMark }
 
 /**用于编译的行 */
 export class AsmLine {

@@ -6,12 +6,18 @@ import Language from "../Language";
 import { AddressLength, AddressType, ConfidentAddressValue, InstrumentTable } from "../MyConst";
 import { MyError } from "../MyError";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
-import { AsmLine, AsmLineInstrumentTag, AsmLineType } from "./AsmLine";
+import { AsmLine, AsmLineInstrumentTag, AsmLineMacroTag, AsmLineType } from "./AsmLine";
+import { ComAnalyse } from "./ComAnalyse";
 
 export function AsmLineAnalyse(params: MyParameters) {
 	let asmLine = params.allAsmLine[params.index];
 	switch (asmLine.lineType) {
 		case AsmLineType.None:
+			console.log("AsmLineType.None");
+			console.log(asmLine);
+			break;
+		case AsmLineType.OnlyMark:
+			(<Mark>asmLine.mark).value = params.globalVar.address;
 			break;
 		case AsmLineType.Assign:
 			AnalyseAssign(params.globalVar, asmLine, params.macro)
@@ -20,8 +26,10 @@ export function AsmLineAnalyse(params: MyParameters) {
 			AnalyseInstrument(params.globalVar, asmLine, params.macro);
 			break;
 		case AsmLineType.Command:
+			ComAnalyse(params);
 			break;
 		case AsmLineType.Macro:
+			AnalyseMacro(asmLine, params);
 			break;
 	}
 }
@@ -136,6 +144,15 @@ function AnalyseInstrument(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro
 }
 //#endregion 分析汇编指令
 
+//#region 分析自定义函数
+function AnalyseMacro(asmLine: AsmLine, params: MyParameters) {
+	let tag: AsmLineMacroTag = asmLine.tag;
+	let option = { globalVar: params.globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: params.macro };
+	let macro = (<Mark>params.globalVar.marks.FindMark(tag.command.text, option));
+
+}
+//#endregion 分析自定义函数
+
 //#region 获取兼容的最大寻址长度
 function GetAddressTypeMaxLength(addressTypes: AddressType[]): number {
 	let max: number | null = null;
@@ -146,3 +163,5 @@ function GetAddressTypeMaxLength(addressTypes: AddressType[]): number {
 	return <number>max;
 }
 //#endregion 获取兼容的最大寻址长度
+
+

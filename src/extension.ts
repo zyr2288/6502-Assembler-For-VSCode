@@ -12,9 +12,6 @@ export function activate(context: vscode.ExtensionContext) {
 	Helper.HelperInit();
 
 	let disposable = vscode.commands.registerCommand('6502-assembler.helloWorld', () => {
-
-		MyError.ClearAllError();
-
 		if (!vscode.window.activeTextEditor)
 			return;
 

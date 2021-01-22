@@ -5,7 +5,8 @@ import {
 	AsmLineCommandCommonTag,
 	AsmLineCommandDxTag,
 	AsmLineCommandDxGTag,
-	AsmLineCommandMacroTag
+	AsmLineCommandMacroTag,
+	AsmLineMacroTag
 } from "../AsmLine/AsmLine";
 import { BaseLine, BaseLineType } from "../Base/BaseLine";
 import { Mark } from "../Data/Mark";
@@ -128,6 +129,7 @@ export class AsmUtils {
 
 			//#region 各种命令
 			case BaseLineType.Command: {
+				asmLine.lineType = AsmLineType.Command;
 				switch (baseLine.comOrOp?.text) {
 
 					case ".DBG":
@@ -178,6 +180,26 @@ export class AsmUtils {
 				break;
 			}
 			//#endregion 各种命令
+
+			//#region 自定义函数
+			case BaseLineType.Macro: {
+				asmLine.lineType = AsmLineType.Macro;
+				let tag:AsmLineMacroTag = {
+					mark: baseLine.mark,
+					command: <Word>baseLine.comOrOp,
+					params: baseLine.tag
+				}
+				asmLine.tag = tag;
+				break;
+			}
+			//#endregion 自定义函数
+
+			//#region 只有标签
+			case BaseLineType.OnlyMark: {
+				asmLine.lineType = AsmLineType.OnlyMark;
+				break;
+			}
+			//#endregion 只有标签
 
 		}
 		return asmLine;

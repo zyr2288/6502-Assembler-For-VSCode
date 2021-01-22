@@ -1,3 +1,4 @@
+import { AsmLine } from "../AsmLine/AsmLine";
 import { Word } from "../Interface";
 import { Mark } from "./Mark";
 
@@ -9,6 +10,8 @@ export class Macro {
 	private parameterIds: number[] = [];
 	/**输入的参数个数 */
 	parametersCount: number = 0;
+	/**函数所有行 */
+	asmLines: AsmLine[] = [];
 
 	/**
 	 * 增加一个参数

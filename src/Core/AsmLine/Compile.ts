@@ -4,6 +4,7 @@ import { CompileType, MyParameters } from "../Interface";
 import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
 import { AsmLine } from "./AsmLine";
+import { AsmLineAnalyse } from "./AsmLineAnalyse";
 
 export function CompileAllText(text: string, filePath: string): AsmLine[] {
 	MyError.ClearAllError();
@@ -44,7 +45,7 @@ export function CompileAllText(text: string, filePath: string): AsmLine[] {
 				continue;
 
 			params.index = i;
-			(params);
+			AsmLineAnalyse(params);
 			i = params.index;
 			if (MyError.isError) {
 				return [];
