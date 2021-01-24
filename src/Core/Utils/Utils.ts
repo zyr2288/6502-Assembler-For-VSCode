@@ -100,7 +100,7 @@ export class Utils {
 	 * @param target 目标相对或绝对路径
 	 * @param basePath 拼接的基础路径
 	 */
-	static GetFilePath(target:string, basePath:string) {
+	static GetFilePath(target: string, basePath: string) {
 		if (/^([a-zA-Z]\:)?\//.test(target)) {
 			return vscode.Uri.file(target);
 		} else {
@@ -110,5 +110,37 @@ export class Utils {
 		}
 	}
 	//#endregion 获取文件路径Uri
+
+	//#region 深度拷贝
+	/**
+	 * 深度拷贝
+	 * @param source 要拷贝的源
+	 */
+	static DeepClone(source: any) {
+		let targetObj: any = source.constructor === Array ? [] : {}; // 判断复制的目标是数组还是对象
+		for (let keys in source) { // 遍历目标
+			if (source.hasOwnProperty(keys)) {
+				if (source[keys] && typeof source[keys] === 'object') { // 如果值是对象，就递归一下
+					targetObj[keys] = source[keys].constructor === Array ? [] : {};
+					targetObj[keys] = Utils.DeepClone(source[keys]);
+				} else { // 如果不是，就直接赋值
+					targetObj[keys] = source[keys];
+				}
+			}
+		}
+		return targetObj;
+	}
+	//#endregion 深度拷贝
+
+	//#region 转换字节为16进制
+	/**转换字节为16进制 */
+	static ByteToString(byte: number[]): string {
+		let result = "";
+		byte.forEach((value) => {
+			result += `00${value.toString(16).toUpperCase()}`.slice(-2) + " ";
+		});
+		return result;
+	}
+	//#endregion 转换字节为16进制
 
 }

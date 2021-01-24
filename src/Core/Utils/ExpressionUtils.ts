@@ -31,6 +31,11 @@ interface ExpressionPart {
 	tag: Word | ExpressionPart[];
 }
 
+interface GetExpressionResultType {
+	"Number": number;
+	"Boolean": boolean;
+}
+
 export class ExpressionUtils {
 
 	//#region 检查表达式正误
@@ -66,18 +71,26 @@ export class ExpressionUtils {
 	 * @param option 选项，globalVar, fileIndex, lineNumber, replaceMark
 	 * @param ignoreUnknowValue 是否忽略已知变量但未知值
 	 */
-	static GetExpressionResult(
+	static GetExpressionResult<K extends keyof GetExpressionResultType>(
 		text: Word,
 		option: { globalVar: GlobalVar, fileIndex: number, lineNumber: number, macro?: Macro },
+		resultType: K,
 		ignoreUnknowValue = false
-	): number | boolean | null {
+	): GetExpressionResultType[K] | null {
 		try {
 			let result = ExpressionUtils.SplitExpression(text.text, text.startColumn);
 			if (!result.result || !ExpressionUtils.CheckExpression(result.result))
 				return null;
 
-			let value = ExpressionUtils.GetExpressionValue(result.result, option, ignoreUnknowValue);
-			return value;
+			let value = <GetExpressionResultType[K]>ExpressionUtils.GetExpressionValue(result.result, option, ignoreUnknowValue);
+			if (value == null)
+				return value;
+
+			if ((typeof (value) == "number" && resultType == "Number") ||
+				(typeof (value) == "boolean" && resultType == "Boolean"))
+				return value;
+
+			return null;
 		} catch (error) {
 			return null;
 		}
@@ -313,7 +326,7 @@ export class ExpressionUtils {
 		expressionParts: ExpressionPart[],
 		option: { globalVar: GlobalVar, fileIndex: number, lineNumber: number, macro?: Macro },
 		ignoreUnknowValue = false
-	): number | boolean | null {
+	): any {
 		let tempWord = { beforeStr: "", centerStr: "", afterStr: "", canUse: true };
 		let temp: number | null = null;
 		let tempMark: Mark | undefined;
@@ -357,12 +370,14 @@ export class ExpressionUtils {
 							continue;
 						}
 						let word = <Word>expressionParts[i].tag;
-						let error = new MyError(Language.ErrorMessage.MarkMiss, word.text);
-						error.SetPosition({
-							fileIndex: option.fileIndex, lineNumber: option.lineNumber,
-							startPosition: word.startColumn, length: word.text.length
-						});
-						MyError.PushError(error);
+						if (option.globalVar.compileType == CompileType.LastTime) {
+							let error = new MyError(Language.ErrorMessage.MarkMiss, word.text);
+							error.SetPosition({
+								fileIndex: option.fileIndex, lineNumber: option.lineNumber,
+								startPosition: word.startColumn, length: word.text.length
+							});
+							MyError.PushError(error);
+						}
 						result.isError = true;
 					} else {
 						tempWord.centerStr = (<number>tempMark.value).toString();

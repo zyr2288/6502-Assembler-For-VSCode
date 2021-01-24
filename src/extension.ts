@@ -1,9 +1,8 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { CompileAllText } from './Core/AsmLine/Compile';
+import { CompileAllText, GetAsmResult } from './Core/AsmLine/Compile';
 import { Helper } from './Core/Helper/Helper';
 import { MyError } from './Core/MyError';
+import { Utils } from "./Core/Utils/Utils"
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -18,12 +17,12 @@ export function activate(context: vscode.ExtensionContext) {
 		let text = vscode.window.activeTextEditor.document.getText();
 		let filePath = vscode.window.activeTextEditor.document.uri.fsPath;
 
-		CompileAllText(text, filePath)
+		let lines = CompileAllText(text, filePath)
 		MyError.UpdateError();
+		vscode.env.clipboard.writeText(Utils.ByteToString(GetAsmResult(lines)));
 	});
 
 	context.subscriptions.push(disposable);
-
 
 }
 

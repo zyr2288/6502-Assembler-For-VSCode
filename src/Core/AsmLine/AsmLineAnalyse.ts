@@ -3,12 +3,17 @@ import { Mark } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
 import { CompileType, MyParameters, Word } from "../Interface";
 import Language from "../Language";
-import { AddressLength, AddressType, ConfidentAddressValue, InstrumentTable } from "../MyConst";
+import { AddressLength, AddressType, ConfidentAddressValue, InstrumentCodeMaxLength, InstrumentTable } from "../MyConst";
 import { MyError } from "../MyError";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { AsmLine, AsmLineInstrumentTag, AsmLineMacroTag, AsmLineType } from "./AsmLine";
 import { ComAnalyse } from "./ComAnalyse";
 
+//#region 每一行汇编行分析
+/**
+ * 每一行汇编行分析
+ * @param params 参数
+ */
 export function AsmLineAnalyse(params: MyParameters) {
 	let asmLine = params.allAsmLine[params.index];
 	switch (asmLine.lineType) {
@@ -18,6 +23,7 @@ export function AsmLineAnalyse(params: MyParameters) {
 			break;
 		case AsmLineType.OnlyMark:
 			(<Mark>asmLine.mark).value = params.globalVar.address;
+			asmLine.isFinished = true;
 			break;
 		case AsmLineType.Assign:
 			AnalyseAssign(params.globalVar, asmLine, params.macro)
@@ -33,6 +39,7 @@ export function AsmLineAnalyse(params: MyParameters) {
 			break;
 	}
 }
+//#endregion 每一行汇编行分析
 
 //#region 分析表达式
 /**
@@ -44,7 +51,7 @@ export function AsmLineAnalyse(params: MyParameters) {
 function AnalyseAssign(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro) {
 	let tag: Word = asmLine.tag;
 	let option = { globalVar: globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: macro };
-	let result = <number | null>ExpressionUtils.GetExpressionResult(tag, option);
+	let result = ExpressionUtils.GetExpressionResult(tag, option, "Number");
 	if (result != null)
 		(<Mark>asmLine.mark).value = result;
 }
@@ -79,14 +86,14 @@ function AnalyseInstrument(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro
 		globalVar.AddressAdd(asmLine.resultLength);
 	} else if (tag.expression) {
 		let option = { globalVar: globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: macro };
-		let exResult = <number | null>ExpressionUtils.GetExpressionResult(tag.expression, option);
+		let exResult = ExpressionUtils.GetExpressionResult(tag.expression, option, "Number");
 
 		if (!exResult) {
 			if (globalVar.compileType == CompileType.LastTime)
 				return;
 
 			asmLine.result = [];
-			asmLine.resultLength = GetAddressTypeMaxLength(tag.addressType);
+			asmLine.resultLength = InstrumentCodeMaxLength[tag.instrument.text]
 			globalVar.AddressAdd(asmLine.resultLength);
 		} else {
 			let findType: AddressType = AddressType.NULL;
@@ -146,10 +153,54 @@ function AnalyseInstrument(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro
 
 //#region 分析自定义函数
 function AnalyseMacro(asmLine: AsmLine, params: MyParameters) {
+	if (!asmLine.SetAddress(params.globalVar))
+		return;
+
 	let tag: AsmLineMacroTag = asmLine.tag;
 	let option = { globalVar: params.globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: params.macro };
-	let macro = (<Mark>params.globalVar.marks.FindMark(tag.command.text, option));
+	let macro: Macro;
+	if (!tag.macro)
+		macro = tag.macro = (<Macro>(<Mark>params.globalVar.marks.FindMark(tag.command.text, option)).tag).GetMacro();
+	else
+		macro = tag.macro;
 
+	// let part = 
+	for (let i = 0; i < macro.parametersCount; i++) {
+		let temp = ExpressionUtils.GetExpressionResult(tag.params[i], option, "Number");
+		if (temp == null)
+			continue;
+
+		macro.parameters[i].value = temp;
+	}
+
+	let tempParams: MyParameters = { globalVar: params.globalVar, allAsmLine: macro.asmLines, index: 0, macro: macro };
+	let lineFinished = true;
+	for (let i = 0; i < tempParams.allAsmLine.length; i++) {
+		if (tempParams.allAsmLine[i].isFinished)
+			continue;
+
+		tempParams.index = i;
+		AsmLineAnalyse(tempParams);
+		i = tempParams.index;
+		if (MyError.isError)
+			return
+
+	}
+
+	asmLine.resultLength = 0;
+	tempParams.allAsmLine.forEach(value => {
+		lineFinished &&= value.isFinished;
+		asmLine.resultLength += value.resultLength;
+	});
+
+	if (asmLine.isFinished = lineFinished) {
+		asmLine.result = [];
+		tempParams.allAsmLine.forEach(value => {
+			value.result?.forEach(value => {
+				asmLine.result?.push(value);
+			});
+		});
+	}
 }
 //#endregion 分析自定义函数
 

@@ -66,7 +66,7 @@ export const InstrumentTable: { [key: string]: number[] } = {
 
 //#region 每个指令对应最长指令占用长度
 /**每个指令对应最长指令占用长度 */
-export const InstrumentCodeMaxLength = {
+export const InstrumentCodeMaxLength: { [key: string]: number } = {
 	ADC: 3, AND: 3, ASL: 3,
 	BCC: 2, BCS: 2, BEQ: 2, BIT: 3, BMI: 2, BNE: 2, BPL: 2, BRK: 1, BVC: 2, BVS: 2,
 	CLC: 1, CLD: 1, CLI: 1, CLV: 1, CMP: 3, CPX: 3, CPY: 3,

@@ -117,6 +117,7 @@ export class AsmUtils {
 					addressType: <AddressType[]>baseLine.addressType
 				};
 				asmLine.tag = tag;
+				break;
 			}
 			//#endregion 汇编指令
 
@@ -124,6 +125,7 @@ export class AsmUtils {
 			case BaseLineType.Assign: {
 				asmLine.lineType = AsmLineType.Assign;
 				asmLine.tag = baseLine.expression;
+				break;
 			}
 			//#endregion 表达式
 
@@ -184,7 +186,7 @@ export class AsmUtils {
 			//#region 自定义函数
 			case BaseLineType.Macro: {
 				asmLine.lineType = AsmLineType.Macro;
-				let tag:AsmLineMacroTag = {
+				let tag: AsmLineMacroTag = {
 					mark: baseLine.mark,
 					command: <Word>baseLine.comOrOp,
 					params: baseLine.tag
@@ -205,5 +207,18 @@ export class AsmUtils {
 		return asmLine;
 	}
 	//#endregion 转换基础行成为编译行
+
+	//#region 插入汇编行的副本
+	/**
+	 * 插入汇编行的副本
+	 * @param source 插入的源
+	 * @param index 插入的索引
+	 * @param insertItems 要插入的项目
+	 */
+	static InsertAsmLines(source: AsmLine[], index: number, insertItems: AsmLine[]) {
+		for (let i = insertItems.length - 1; i >= 0; i--)
+			source.splice(index, 0, insertItems[i].Copy());
+	}
+	//#endregion 插入汇编行的副本
 
 }

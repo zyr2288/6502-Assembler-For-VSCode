@@ -1,9 +1,11 @@
+import { Macro } from "../Data/Macro";
 import { Mark } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
 import { TagDataGroup, Word } from "../Interface";
 import Language from "../Language";
 import { AddressType } from "../MyConst";
 import { MyError } from "../MyError";
+import { Utils } from "../Utils/Utils";
 
 export interface AsmLineInstrumentTag {
 	instrument: Word;
@@ -36,6 +38,7 @@ export interface AsmLineMacroTag {
 	mark?: Mark;
 	command: Word;
 	params: Word[];
+	macro?: Macro;
 }
 
 /**编译行类型 */
@@ -82,18 +85,38 @@ export class AsmLine {
 	}
 	//#endregion 设定起始地址
 
+	//#region 设置结果值
 	SetResult(code: number, op: number) {
 		// @ts-ignore
 		this.result[0] = code;
 		switch (this.resultLength) {
 			case 3:
 				// @ts-ignore
-				this.result[2] = (address >> 8) & 0xFF;
+				this.result[2] = (op >> 8) & 0xFF;
 			case 2:
 				// @ts-ignore
-				this.result[1] = address & 0xFF;
+				this.result[1] = op & 0xFF;
 				break;
 		}
 	}
+	//#endregion 设置结果值
+
+	//#region 复制本例
+	/**
+	 * 复制本例
+	 */
+	Copy(): AsmLine {
+		let asmLine = new AsmLine();
+		asmLine.fileIndex = this.fileIndex;
+		asmLine.lineNumber = this.lineNumber;
+		asmLine.lineType = this.lineType;
+		asmLine.text = { text: this.text.text, startColumn: this.text.startColumn };
+		asmLine.mark = this.mark;
+		asmLine.tag = this.tag;
+		return asmLine;
+
+		// return Utils.DeepClone(this);;
+	}
+	//#endregion 复制本例
 
 }

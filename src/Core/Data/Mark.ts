@@ -116,7 +116,7 @@ export class Marks {
 		// 如果是自定义函数内的标签
 		if (option.macro) {
 			if (this.CheckMarkIllegal(markText)) {
-				let err = new MyError(Language.ErrorMessage.MarkIllegal);
+				let err = new MyError(Language.ErrorMessage.MarkIllegal, markText.text);
 				err.SetPosition({
 					fileIndex: option.fileIndex, lineNumber: option.lineNumber,
 					startPosition: markText.startColumn, length: markText.text.length
@@ -135,7 +135,7 @@ export class Marks {
 				type: MarkType.Defined,
 				scope: MarkScope.Local,
 			};
-			if(!option.macro.AddParameter(mark, id)){
+			if (!option.macro.AddParameter(mark, id)) {
 				let err = new MyError(Language.ErrorMessage.MarkAlreadyExists, markText.text);
 				err.SetPosition({
 					fileIndex: option.fileIndex, lineNumber: option.lineNumber,
