@@ -3,7 +3,8 @@ import { Word } from "../Interface";
 import { Marks, MarkScope } from "./Mark";
 
 export class DataGroup {
-	private memberIds: number[] = [];
+
+	memberIds: number[] = [];
 
 	AddMember(member: Word, globalVar: GlobalVar, option: { fileIndex: number, lineNumber: number }) {
 		let id = globalVar.marks.GetMarkId(member.text, MarkScope.Global, option);

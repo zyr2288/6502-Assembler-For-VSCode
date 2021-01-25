@@ -182,22 +182,15 @@ function Command_DXG(params: MyParameters, type: ".DBG" | ".DWG") {
 	let length = type == ".DBG" ? 1 : 2;
 	let max = type == ".DBG" ? 0x100 : 0x10000;
 
-	let datagroup = new DataGroup();
+	let datagroup: DataGroup = asmLine.mark?.tag;
 	let tag: AsmLineCommandDxGTag = asmLine.tag;
-	let option = {
-		globalVar: params.globalVar,
-		fileIndex: asmLine.fileIndex,
-		lineNumber: asmLine.lineNumber,
-		macro: params.macro
-	};
 
 	let isNotFinished = false;
 	asmLine.result = [];
 	let loop = 0;
 	for (; loop < tag.parts.length; loop++) {
-		datagroup.AddMember(tag.parts[loop].word, params.globalVar, option);
-		let mark = params.globalVar.marks.FindMark(tag.parts[loop].word.text, option)
-		if (isNotFinished || !mark || mark.value == undefined) {
+		let mark = params.globalVar.marks.marks[datagroup.memberIds[loop]];
+		if (!mark || mark.value == undefined) {
 			isNotFinished = true;
 			break;
 		}

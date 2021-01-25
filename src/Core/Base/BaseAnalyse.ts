@@ -534,7 +534,9 @@ export class BaseAnalyse {
 			case ".DBG":
 			case ".DWG": {
 				baseLine.mark = params.globalVar.marks.AddMark(exp, option);
-				let lines: BaseLine[] = baseLine.tag;
+
+				// 直接分析每一个内容，最后再分析标签是否存在
+				let lines: BaseLine[] = baseLine.tag;		
 				let tagPart: TagDataGroup[] = [];
 				let datagroup = new DataGroup();
 				for (let i = 0; i < lines.length; i++) {
