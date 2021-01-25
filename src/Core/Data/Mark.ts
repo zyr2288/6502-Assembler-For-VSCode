@@ -3,6 +3,7 @@ import Language from "../Language";
 import { TempMarkReg } from "../MyConst";
 import { MyError } from "../MyError";
 import { Utils } from "../Utils/Utils";
+import { DataGroup } from "./DataGroup";
 import { Macro } from "./Macro";
 
 /**标签作用域 */
@@ -186,9 +187,40 @@ export class Marks {
 				return mark;
 		}
 
-		let markScope = text.startsWith(".") ? MarkScope.Local : MarkScope.Global;
+		let markScope = markText.text.startsWith(".") ? MarkScope.Local : MarkScope.Global;
+		if (markText.text.includes(":")) {
+			let part = Utils.SplitWithRegex(/\s*\:\s*/g, 0, markText.text, markText.startColumn);
+			if (part.length != 2 && part.length != 3) {
+				let err = new MyError(Language.ErrorMessage.ExpressionError);
+				err.SetPosition({
+					fileIndex: option.fileIndex, lineNumber: option.lineNumber,
+					startPosition: markText.startColumn, length: markText.text.length
+				});
+				MyError.PushError(err);
+				return;
+			}
 
-		let id = this.GetMarkId(text, markScope, option);
+			let id = this.GetMarkId(part[0].text, markScope, option);
+			if (!this.marks[id] || !this.marks[id].tag)
+				return;
+
+			let datagroup: DataGroup = this.marks[id].tag;
+			let value = datagroup.FindIndex(this, part[1].text, parseInt(part[2].text));
+			let mark: Mark = {
+				id: this.GetMarkId(part[1].text, MarkScope.Global, option),
+				parentId: -1,
+				childrenIDs: [],
+				fileIndex: option.fileIndex,
+				lineNumber: option.lineNumber,
+				scope: MarkScope.Global,
+				type: MarkType.Defined,
+				text: { startColumn: 0, text: "" },
+				value: value,
+			}
+			return mark;
+		}
+
+		let id = this.GetMarkId(markText.text, markScope, option);
 		if (!this.marks[id] || this.marks[id].type == MarkType.None)
 			return;
 

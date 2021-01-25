@@ -1,4 +1,6 @@
 import * as fs from "fs";
+import { TaskGroup } from "vscode";
+import { DataGroup } from "../Data/DataGroup";
 import { Macro } from "../Data/Macro";
 import { CompileType } from "../GlobalVar";
 import { MyParameters, Word } from "../Interface";
@@ -7,7 +9,7 @@ import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { Utils } from "../Utils/Utils";
-import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandMacroTag } from "./AsmLine";
+import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandDxGTag, AsmLineCommandMacroTag } from "./AsmLine";
 
 export function ComAnalyse(params: MyParameters) {
 	let asmLine = params.allAsmLine[params.index];
@@ -31,15 +33,36 @@ export function ComAnalyse(params: MyParameters) {
 			break;
 		}
 
-		case ".MACRO": {
+		case ".DBG":
+		case ".DWG":
+			Command_DXG(params, command.text);
+			break;
+
+		case ".MACRO":
 			Command_Macro(asmLine);
 			break;
-		}
 
-		case ".IF": {
+		case ".IF":
 			Command_If(params);
 			break;
-		}
+
+		case ".IFDEF":
+		case ".IFNDEF":
+			Command_Ifdef_IfNdef(params);
+			break;
+
+		case ".REPEAT":
+			Command_Repeat(params);
+			break;
+
+		default:
+			let err = new MyError(Language.ErrorMessage.CommandMiss);
+			err.SetPosition({
+				fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber,
+				startPosition: command.startColumn, length: command.text.length
+			});
+			MyError.PushError(err);
+			break;
 	}
 }
 
@@ -150,6 +173,73 @@ function Command_Incbin(expression: Word, params: MyParameters) {
 }
 //#endregion INCBIN 命令
 
+//#region DBG/DWG 命令
+function Command_DXG(params: MyParameters, type: ".DBG" | ".DWG") {
+
+	let asmLine = params.allAsmLine[params.index];
+	asmLine.SetAddress(params.globalVar);
+
+	let length = type == ".DBG" ? 1 : 2;
+	let max = type == ".DBG" ? 0x100 : 0x10000;
+
+	let datagroup = new DataGroup();
+	let tag: AsmLineCommandDxGTag = asmLine.tag;
+	let option = {
+		globalVar: params.globalVar,
+		fileIndex: asmLine.fileIndex,
+		lineNumber: asmLine.lineNumber,
+		macro: params.macro
+	};
+
+	let isNotFinished = false;
+	asmLine.result = [];
+	let loop = 0;
+	for (; loop < tag.parts.length; loop++) {
+		datagroup.AddMember(tag.parts[loop].word, params.globalVar, option);
+		let mark = params.globalVar.marks.FindMark(tag.parts[loop].word.text, option)
+		if (isNotFinished || !mark || mark.value == undefined) {
+			isNotFinished = true;
+			break;
+		}
+
+		if (mark.value >= max) {
+			let err = new MyError(Language.ErrorMessage.MarkMiss, tag.parts[loop].word.text);
+			err.SetPosition({
+				fileIndex: asmLine.fileIndex, lineNumber: tag.parts[loop].lineNumber,
+				startPosition: tag.parts[loop].word.startColumn, length: tag.parts[loop].word.text.length
+			});
+			MyError.PushError(err);
+			isNotFinished = false;
+			break;
+		}
+
+		switch (length) {
+			case 2:
+				asmLine.result.push((mark.value >> 8) & 0xFF);
+			case 1:
+				asmLine.result.push(mark.value & 0xFF);
+				break;
+		}
+	}
+
+	if (isNotFinished) {
+		if (params.globalVar.compileType == CompileType.LastTime) {
+			let err = new MyError(Language.ErrorMessage.MarkMiss, tag.parts[loop].word.text);
+			err.SetPosition({
+				fileIndex: asmLine.fileIndex, lineNumber: tag.parts[loop].lineNumber,
+				startPosition: tag.parts[loop].word.startColumn, length: tag.parts[loop].word.text.length
+			});
+			MyError.PushError(err);
+		}
+	} else {
+		asmLine.isFinished = true;
+	}
+
+	asmLine.resultLength = tag.parts.length * length;
+	params.globalVar.AddressAdd(asmLine.resultLength);
+}
+//#endregion DBG/DWG 命令
+
 //#region MACRO 命令
 function Command_Macro(asmLine: AsmLine) {
 	let tag: AsmLineCommandMacroTag = asmLine.tag;
@@ -161,13 +251,16 @@ function Command_Macro(asmLine: AsmLine) {
 
 //#region IF 命令
 function Command_If(params: MyParameters) {
-	let conditionLine: number[] = [];
 	let index = params.index;
+	let conditionLine: number[] = [index];
 	let stack = 0;
 	let notEnd = true;
-	while (index < params.allAsmLine.length) {
+	while (index < params.allAsmLine.length - 1) {
 		index++;
 		let tag: AsmLineCommandCommonTag = params.allAsmLine[index].tag;
+		if (!tag || !tag.command)
+			continue;
+
 		if (Utils.CompareString(tag.command.text, ".IF", ".IFDEF", ".IFNDEF")) {
 			stack++;
 			continue;
@@ -204,11 +297,11 @@ function Command_If(params: MyParameters) {
 	let result: boolean | null = false;
 	for (; loop < conditionLine.length; loop++) {
 		let tag: AsmLineCommandCommonTag = params.allAsmLine[conditionLine[loop]].tag;
-		if (Utils.CompareString(".IF", ".ELSEIF")) {
+		if (Utils.CompareString(tag.command.text, ".IF", ".ELSEIF")) {
 			result = ExpressionUtils.GetExpressionResult(tag.expression, option, "Boolean");
 			if (result == null)
 				return;
-		} else if (Utils.CompareString(".ELSE")) {
+		} else if (Utils.CompareString(tag.command.text, ".ELSE")) {
 			result = true;
 		}
 
@@ -217,9 +310,108 @@ function Command_If(params: MyParameters) {
 	}
 	GetConditionLines(loop, conditionLine, params.allAsmLine);
 	params.globalVar.compileType = CompileType.FirstTime;
-
+	params.index--;
 }
 //#endregion IF 命令
+
+//#region IFDEF/IFNDEF 命令
+function Command_Ifdef_IfNdef(params: MyParameters) {
+	let index = params.index;
+	let conditionLine: number[] = [index];
+	let stack = 0;
+	while (index < params.allAsmLine.length - 1) {
+		index++;
+		let tag: AsmLineCommandCommonTag = params.allAsmLine[index].tag;
+		if (!tag || !tag.command)
+			continue;
+
+		if (Utils.CompareString(tag.command.text, ".IF", ".IFDEF", ".IFNDEF")) {
+			stack++;
+			continue;
+		}
+
+		if (Utils.CompareString(tag.command.text, ".ELSE")) {
+			if (stack == 0) {
+				conditionLine.push(index);
+			}
+
+			continue;
+		}
+
+		if (Utils.CompareString(tag.command.text, ".ENDIF")) {
+			if (stack == 0) {
+				conditionLine.push(index);
+				break;
+			}
+			stack--;
+		}
+	}
+
+	params.globalVar.compileType = CompileType.LastTime;
+	let option = { globalVar: params.globalVar, fileIndex: params.allAsmLine[params.index].fileIndex, lineNumber: params.index, macro: params.macro };
+	let loop = 0;
+	let result: number = 1;
+	for (; loop < conditionLine.length; loop++) {
+		let tag: AsmLineCommandCommonTag = params.allAsmLine[conditionLine[loop]].tag;
+		if (Utils.CompareString(tag.command.text, ".IFDEF", ".IFNDEF")) {
+			// @ts-ignore
+			result = (tag.command.text == ".IFDEF") ^ (!!params.globalVar.marks.FindMark(tag.expression.text, option));
+		} else if (Utils.CompareString(tag.command.text, ".ELSE")) {
+			result = 0;
+		}
+
+		if (!result)
+			break;
+	}
+	GetConditionLines(loop, conditionLine, params.allAsmLine);
+	params.globalVar.compileType = CompileType.FirstTime;
+	params.index--;
+}
+//#endregion IFDEF/IFNDEF 命令
+
+//#region REPEAT 命令
+function Command_Repeat(params: MyParameters) {
+	let startLine = params.index;
+	let endLine = 0;
+	let stack = 0;
+	let index = params.index;
+	while (index < params.allAsmLine.length - 1) {
+		index++;
+		let tag: AsmLineCommandCommonTag = params.allAsmLine[index].tag;
+		if (!tag || !tag.command)
+			continue;
+
+		if (tag.command.text == ".REPEAT") {
+			stack++;
+			continue;
+		}
+
+		if (Utils.CompareString(tag.command.text, ".ENDR")) {
+			if (stack == 0) {
+				endLine = index;
+				break;
+			}
+			stack--;
+		}
+	}
+
+	let tag: AsmLineCommandCommonTag = params.allAsmLine[startLine].tag;
+	let temp = params.allAsmLine.splice(startLine, endLine - startLine + 1);
+	temp = temp.splice(1, temp.length - 2);
+	params.index--;
+
+	params.globalVar.compileType = CompileType.LastTime;
+	let option = { globalVar: params.globalVar, fileIndex: params.allAsmLine[params.index].fileIndex, lineNumber: params.index, macro: params.macro };
+	let result = ExpressionUtils.GetExpressionResult(tag.expression, option, "Number");
+	params.globalVar.compileType = CompileType.FirstTime;
+	if (result == null)
+		return;
+
+	for (let i = 0; i < result; i++) {
+		AsmUtils.InsertAsmLines(params.allAsmLine, params.index + 1, temp);
+	}
+}
+//#endregion REPEAT 命令
 
 /***** 工具方法 *****/
 
@@ -231,12 +423,12 @@ function Command_If(params: MyParameters) {
  * @param allLines 所有编译行
  */
 function GetConditionLines(index: number, conditionIndex: number[], allLines: AsmLine[]) {
-	let temp = allLines.splice(conditionIndex[0], conditionIndex[conditionIndex.length - 1] - conditionIndex[0]);
+	let temp = allLines.splice(conditionIndex[0], conditionIndex[conditionIndex.length - 1] - conditionIndex[0] + 1);
 	if (index >= conditionIndex.length - 1)
 		return;
 
-	let startLine = conditionIndex[index] - conditionIndex[0];
-	let length = conditionIndex[index + 1] - conditionIndex[index];
+	let startLine = conditionIndex[index] - conditionIndex[0] + 1;
+	let length = conditionIndex[index + 1] - conditionIndex[index] - 1;
 	temp = temp.splice(startLine, length);
 	AsmUtils.InsertAsmLines(allLines, conditionIndex[0], temp);
 }

@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import { DataGroup } from "../Data/DataGroup";
 import { Macro } from "../Data/Macro";
 import { Mark, MarkScope, MarkType } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
@@ -165,13 +166,15 @@ export class BaseAnalyse {
 						startPosition: tempMark.startColumn, length: tempMark.text.length
 					});
 					MyError.PushError(err);
+					baseLine.ignore = true;
+					return;
 				}
+				baseLine.mark = mark;
 			} else {
 				baseLine.mark = params.globalVar.marks.AddMark(tempMark, option);
 				if (baseLine.mark)
 					baseLine.mark.type = MarkType.Variable;
 			}
-
 			return;
 		}
 	}
@@ -333,23 +336,6 @@ export class BaseAnalyse {
 			//#region DBG/DWG 命令
 			case ".DBG":
 			case ".DWG": {
-				if (!baseLine.tag)
-					break;
-
-				let lines: BaseLine[] = baseLine.tag;
-				let tagPart: TagDataGroup[] = [];
-				for (let i = 0; i < lines.length; i++) {
-					let part = Utils.SplitWithRegex(/\s*\,\s*/g, 0, lines[i].text.text, lines[i].text.startColumn);
-					if (Utils.StringIsEmpty(part[part.length - 1].text))
-						part.splice(part.length - 1, 1);
-
-					option.lineNumber = lines[i].lineNumber;
-					for (let j = 0; j < part.length; j++) {
-						if (ExpressionUtils.CheckExpressionCurrect(part[j], option))
-							tagPart.push({ lineNumber: option.lineNumber, word: part[j] });
-					}
-				}
-				baseLine.tag = tagPart;		// 分析完毕，把所有Part存起来，方便给AsmLine直接计算
 				break;
 			}
 			//#endregion DBG/DWG 命令
@@ -400,7 +386,12 @@ export class BaseAnalyse {
 
 		let baseLine = params.allLines[params.index];
 		let exp = <Word>baseLine.expression;
-		let option = { fileIndex: baseLine.fileIndex, lineNumber: baseLine.fileIndex, comment: baseLine.comment, macro: <Macro | undefined>undefined };
+		let option = {
+			fileIndex: baseLine.fileIndex,
+			lineNumber: baseLine.fileIndex,
+			comment: baseLine.comment,
+			macro: <Macro | undefined>undefined
+		};
 		switch (baseLine.comOrOp?.text) {
 
 			//#region DEF 命令
@@ -543,6 +534,22 @@ export class BaseAnalyse {
 			case ".DBG":
 			case ".DWG": {
 				baseLine.mark = params.globalVar.marks.AddMark(exp, option);
+				let lines: BaseLine[] = baseLine.tag;
+				let tagPart: TagDataGroup[] = [];
+				let datagroup = new DataGroup();
+				for (let i = 0; i < lines.length; i++) {
+					let part = Utils.SplitWithRegex(/\s*\,\s*/g, 0, lines[i].text.text, lines[i].text.startColumn);
+					if (Utils.StringIsEmpty(part[part.length - 1].text))
+						part.splice(part.length - 1, 1);
+
+					option.lineNumber = lines[i].lineNumber;
+					for (let j = 0; j < part.length; j++) {
+						datagroup.AddMember(part[j], params.globalVar, option);
+						tagPart.push({ lineNumber: option.lineNumber, word: part[j] });
+					}
+				}
+				(<Mark>baseLine.mark).tag = datagroup;
+				baseLine.tag = tagPart;		// 分析完毕，把所有Part存起来，方便给AsmLine直接计算
 				break;
 			}
 			//#endregion DBG/DWG 命令
@@ -645,7 +652,7 @@ export class BaseAnalyse {
 				if (Utils.CompareString(match.match.text, ".ENDD")) {
 					BaseAnalyse.CheckCommandNoMarkAndExpression(params.allLines[match.index], match.match);
 					params.allLines.splice(match.index, 1);
-					baseLine.tag = params.allLines.splice(params.index, match.index - params.index - 1);
+					baseLine.tag = params.allLines.splice(params.index + 1, match.index - params.index - 1);
 				} else {
 					let err = new MyError(Language.ErrorMessage.NotMatchEnd, ".ENDD");
 					err.SetPosition({
@@ -747,7 +754,10 @@ export class BaseAnalyse {
 							continue;
 						}
 						BaseAnalyse.CheckCommandNoMarkAndExpression(params.allLines[match.index], match.match);
+
 						// 这里不删除.ENDIF 遇到.ENDIF直接忽略
+						params.allLines[match.index].comOrOp = { text: ".ENDIF", startColumn: match.index };
+						params.allLines[match.index].lineType = BaseLineType.Command;
 						params.allLines[match.index].ignore = true;
 						break;
 					}
@@ -793,6 +803,9 @@ export class BaseAnalyse {
 						}
 
 						BaseAnalyse.CheckCommandNoMarkAndExpression(params.allLines[match.index], match.match);
+
+						params.allLines[match.index].comOrOp = { text: ".ENDR", startColumn: match.index };
+						params.allLines[match.index].lineType = BaseLineType.Command;
 						params.allLines[match.index].ignore = true;
 						break;
 					}
@@ -904,7 +917,6 @@ export class BaseAnalyse {
 	private static CheckCommandNoMarkAndExpression(baseLine: BaseLine, command: Word): void {
 		let left = baseLine.text.text.substring(0, command.startColumn - baseLine.text.startColumn);
 		let right = baseLine.text.text.substring(command.text.length + command.startColumn - baseLine.text.startColumn);
-		let result = true;
 		if (!Utils.StringIsEmpty(left)) {
 			let err = new MyError(Language.ErrorMessage.CommandNotSupportMark);
 			err.SetPosition({
