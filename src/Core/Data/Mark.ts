@@ -2,6 +2,7 @@ import { Word } from "../Interface";
 import Language from "../Language";
 import { TempMarkReg } from "../MyConst";
 import { MyError } from "../MyError";
+import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { Utils } from "../Utils/Utils";
 import { DataGroup } from "./DataGroup";
 import { Macro } from "./Macro";
@@ -50,7 +51,7 @@ export class Marks {
 	tempMarks: { [fileIndex: number]: Mark[] } = {};
 
 	/**所有自定义函数名称 */
-	private macroNames: string[] = [];
+	macroNames: string[] = [];
 	/**查找自定义函数的正则表达式字符串 */
 	macroRegex: string | null = null;
 
@@ -204,10 +205,14 @@ export class Marks {
 			if (!this.marks[id] || !this.marks[id].tag)
 				return;
 
+			let part2 = 0;
+			if (part[2])
+				part2 = parseInt(part[2].text);
+
 			let datagroup: DataGroup = this.marks[id].tag;
-			let value = datagroup.FindIndex(this, part[1].text, parseInt(part[2].text));
+			let value = datagroup.FindIndex(this, part[1].text, part2);
 			let mark: Mark = {
-				id: this.GetMarkId(part[1].text, MarkScope.Global, option),
+				id: this.GetMarkId(part[0].text, MarkScope.Global, option),
 				parentId: -1,
 				childrenIDs: [],
 				fileIndex: option.fileIndex,
@@ -246,12 +251,11 @@ export class Marks {
 		} else {
 			while (true) {
 				let parentId = this.marks[markId].parentId;						// 查找父级ID
-				if (!this.marks[parentId])
-					break;
-
-				let index = this.marks[parentId].childrenIDs.indexOf(markId);	// 父级标签中子集位置
-				if (index >= 0)
-					this.marks[parentId].childrenIDs.splice(index, 1);			// 删除标签
+				if (this.marks[parentId]) {
+					let index = this.marks[parentId].childrenIDs.indexOf(markId);	// 父级标签中子集位置
+					if (index >= 0)
+						this.marks[parentId].childrenIDs.splice(index, 1);			// 删除标签
+				}
 
 				this.UpdateMacroNames(this.marks[markId].text.text, "Remove");
 
@@ -302,9 +306,9 @@ export class Marks {
 			return;
 
 		let marks = this.markFiles[fileIndex];
-		for (let i = 0; i < marks.length; i++) {
-			this.DeleteMark(marks[i]);
-		}
+		while (marks.length > 0)
+			this.DeleteMark(marks[0]);
+
 	}
 	//#endregion 删除某个文件ID内的所有Mark
 
@@ -374,13 +378,27 @@ export class Marks {
 			words.splice(0, 1);
 			scope = MarkScope.Local;
 			tempText = ".";
-			topParentId = this.GetMarkId("", scope, option)
+		}
+		topParentId = this.GetMarkId("", scope, option);
+
+		let topMark = this.marks[topParentId];
+		if (!topMark) {
+			topMark = this.marks[topParentId] = {
+				id: topParentId,
+				parentId: -1,
+				fileIndex: -1,
+				lineNumber: -1,
+				childrenIDs: [],
+				scope: MarkScope.Global,
+				type: MarkType.None,
+				text: { text: "", startColumn: 0 }
+			}
 		}
 
 		if (option.markScope)
 			scope = option.markScope;
 
-		let tempMarks: Mark[] = [];
+		let tempMarks: Mark[] = [topMark];
 		for (let i = 0; i < words.length; i++) {
 			tempText += words[i].text;
 			let id = this.GetMarkId(tempText, scope, option);

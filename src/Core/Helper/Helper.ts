@@ -6,6 +6,8 @@ import { Project } from "../GlobalVar";
 import { BaseAnalyse } from "../Base/BaseAnalyse";
 import { MyError } from "../MyError";
 import { HelperUtils } from "./HelperUtils";
+import { FileExtension } from "./HelperConst";
+import { Completion } from "./Completion";
 
 export class Helper {
 	private static error = {
@@ -20,6 +22,19 @@ export class Helper {
 	static async HelperInit() {
 
 		HelperUtils.ReadConfig();
+		HelperUtils.BingdingMessageEvent();
+		Completion.Init();
+
+		// 更新折叠信息
+		vscode.languages.registerFoldingRangeProvider(FileExtension, { provideFoldingRanges: HelperUtils.ProvideFoldingRanges });
+		// 智能提示
+		vscode.languages.registerCompletionItemProvider(FileExtension, { provideCompletionItems: Completion.ProvideCompletionItem }, ".", ":");
+		// 自动大写与文件更新
+		vscode.workspace.onDidChangeTextDocument(HelperUtils.DocumentChange);
+		// 查找定义
+		vscode.languages.registerDefinitionProvider(FileExtension, { provideDefinition: HelperUtils.FindDefinition });
+		// 鼠标停留提示
+		vscode.languages.registerHoverProvider(FileExtension, { provideHover: HelperUtils.HoverHelp });
 
 		MyError.BindingErrorEvent(Helper.UpdateError, Helper.ClearAllError);
 

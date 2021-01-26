@@ -51,7 +51,7 @@ export function AsmLineAnalyse(params: MyParameters) {
 function AnalyseAssign(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro) {
 	let tag: Word = asmLine.tag;
 	let option = { globalVar: globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: macro };
-	let result = ExpressionUtils.GetExpressionResult(tag, option, "Number");
+	let result = ExpressionUtils.GetExpressionResult(tag, option, "number");
 	if (result != null)
 		(<Mark>asmLine.mark).value = result;
 }
@@ -86,9 +86,9 @@ function AnalyseInstrument(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro
 		globalVar.AddressAdd(asmLine.resultLength);
 	} else if (tag.expression) {
 		let option = { globalVar: globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: macro };
-		let exResult = ExpressionUtils.GetExpressionResult(tag.expression, option, "Number");
+		let exResult = ExpressionUtils.GetExpressionResult(tag.expression, option, "number");
 
-		if (!exResult) {
+		if (exResult == null) {
 			if (globalVar.compileType == CompileType.LastTime)
 				return;
 
@@ -166,7 +166,7 @@ function AnalyseMacro(asmLine: AsmLine, params: MyParameters) {
 
 	// let part = 
 	for (let i = 0; i < macro.parametersCount; i++) {
-		let temp = ExpressionUtils.GetExpressionResult(tag.params[i], option, "Number");
+		let temp = ExpressionUtils.GetExpressionResult(tag.params[i], option, "number");
 		if (temp == null)
 			continue;
 

@@ -2,7 +2,8 @@ import * as fs from "fs";
 import { TaskGroup } from "vscode";
 import { DataGroup } from "../Data/DataGroup";
 import { Macro } from "../Data/Macro";
-import { CompileType } from "../GlobalVar";
+import { Mark } from "../Data/Mark";
+import { CompileType, GlobalVar } from "../GlobalVar";
 import { MyParameters, Word } from "../Interface";
 import Language from "../Language";
 import { MyError } from "../MyError";
@@ -11,6 +12,10 @@ import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { Utils } from "../Utils/Utils";
 import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandDxGTag, AsmLineCommandMacroTag } from "./AsmLine";
 
+/**
+ * 分析命令
+ * @param params 参数
+ */
 export function ComAnalyse(params: MyParameters) {
 	let asmLine = params.allAsmLine[params.index];
 	let command: Word = asmLine.tag.command;
@@ -26,6 +31,10 @@ export function ComAnalyse(params: MyParameters) {
 			Command_Org(tag.expression, params);
 			break;
 		}
+
+		case ".DEF":
+			Command_Def(params);
+			break;
 
 		case ".INCBIN": {
 			let tag: AsmLineCommandCommonTag = asmLine.tag;
@@ -55,6 +64,10 @@ export function ComAnalyse(params: MyParameters) {
 			Command_Repeat(params);
 			break;
 
+		case ".MSG":
+			Command_Msg(params);
+			break;
+
 		default:
 			let err = new MyError(Language.ErrorMessage.CommandMiss);
 			err.SetPosition({
@@ -73,7 +86,7 @@ function Command_Base(expression: Word, params: MyParameters) {
 		fileIndex: params.allAsmLine[params.index].fileIndex,
 		lineNumber: params.allAsmLine[params.index].lineNumber
 	};
-	let result = ExpressionUtils.GetExpressionResult(expression, option, "Number");
+	let result = ExpressionUtils.GetExpressionResult(expression, option, "number");
 	if (result == null) {
 		return;
 	} else if (result < 0) {
@@ -107,7 +120,7 @@ function Command_Org(expression: Word, params: MyParameters) {
 	let option = { globalVar: params.globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber };
 
 	params.globalVar.compileType = CompileType.LastTime;
-	let result = ExpressionUtils.GetExpressionResult(expression, option, "Number");
+	let result = ExpressionUtils.GetExpressionResult(expression, option, "number");
 	params.globalVar.compileType = CompileType.FirstTime;
 
 	if (result == null) {
@@ -132,6 +145,20 @@ function Command_Org(expression: Word, params: MyParameters) {
 
 }
 //#endregion ORG 命令
+
+//#region DEF 命令
+function Command_Def(params: MyParameters) {
+	let asmLine = params.allAsmLine[params.index];
+	let tag: AsmLineCommandCommonTag = asmLine.tag;
+	let option = { globalVar: params.globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber };
+	let result = ExpressionUtils.GetExpressionResult(tag.expression, option, "number");
+	if (result == null)
+		return;
+
+	(<Mark>asmLine.mark).value = result;
+	asmLine.isFinished = true;
+}
+//#endregion DEF 命令
 
 //#region INCBIN 命令
 function Command_Incbin(expression: Word, params: MyParameters) {
@@ -291,7 +318,7 @@ function Command_If(params: MyParameters) {
 	for (; loop < conditionLine.length; loop++) {
 		let tag: AsmLineCommandCommonTag = params.allAsmLine[conditionLine[loop]].tag;
 		if (Utils.CompareString(tag.command.text, ".IF", ".ELSEIF")) {
-			result = ExpressionUtils.GetExpressionResult(tag.expression, option, "Boolean");
+			result = ExpressionUtils.GetExpressionResult(tag.expression, option, "boolean");
 			if (result == null)
 				return;
 		} else if (Utils.CompareString(tag.command.text, ".ELSE")) {
@@ -362,6 +389,20 @@ function Command_Ifdef_IfNdef(params: MyParameters) {
 }
 //#endregion IFDEF/IFNDEF 命令
 
+//#region MSG 命令
+function Command_Msg(params: MyParameters) {
+	let asmLine = params.allAsmLine[params.index];
+	let tag: AsmLineCommandCommonTag = asmLine.tag;
+	let option = { globalVar: params.globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: params.macro };
+	let msg = ExpressionUtils.GetExpressionResult(tag.expression, option, "string");
+	if (msg == null)
+		return;
+
+	GlobalVar.PushMessage(msg, params.globalVar.filePaths[asmLine.fileIndex], asmLine.lineNumber);
+	asmLine.isFinished = true;
+}
+//#endregion MSG 命令
+
 //#region REPEAT 命令
 function Command_Repeat(params: MyParameters) {
 	let startLine = params.index;
@@ -395,7 +436,7 @@ function Command_Repeat(params: MyParameters) {
 
 	params.globalVar.compileType = CompileType.LastTime;
 	let option = { globalVar: params.globalVar, fileIndex: params.allAsmLine[params.index].fileIndex, lineNumber: params.index, macro: params.macro };
-	let result = ExpressionUtils.GetExpressionResult(tag.expression, option, "Number");
+	let result = ExpressionUtils.GetExpressionResult(tag.expression, option, "number");
 	params.globalVar.compileType = CompileType.FirstTime;
 	if (result == null)
 		return;

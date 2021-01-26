@@ -128,9 +128,9 @@ export const AddressRegex = {
 	/**立即寻址 */
 	Immediate: "(?<=#).*",
 	/**X偏转 */
-	XOffset: ".*?(?=\\s*\\,\\s*[xX]$)",
+	XOffset: ".*?(?=\\s*\\,\\s*[xX]\\s*$)",
 	/**Y偏转 */
-	YOffset: ".*(?=\\s+\\,\\s+[yY]\\s*$)",
+	YOffset: ".*(?=\\s*\\,\\s*[yY]\\s*$)",
 	/**相对 */
 	Indirect: "(?<=\\().*?(?=\\)\\s*$)",
 	/**相对X偏转 */

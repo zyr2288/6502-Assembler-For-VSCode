@@ -64,6 +64,8 @@ export default class Language {
 
 	static readonly Info = {
 		/**参数个数为"{{0}}" */
-		ParamtersCount: "参数个数为\"{{0}}\""
+		ParamtersCount: "参数个数为\"{{0}}\"",
+		/**文件"{{0}}"，第"{{1}}"行 */
+		Output: "文件\"{{0}}\"，第\"{{1}}\"行"
 	};
 }

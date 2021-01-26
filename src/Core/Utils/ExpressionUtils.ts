@@ -32,8 +32,9 @@ interface ExpressionPart {
 }
 
 interface GetExpressionResultType {
-	"Number": number;
-	"Boolean": boolean;
+	"number": number;
+	"boolean": boolean;
+	"string": string;
 }
 
 export class ExpressionUtils {
@@ -86,8 +87,7 @@ export class ExpressionUtils {
 			if (value == null)
 				return value;
 
-			if ((typeof (value) == "number" && resultType == "Number") ||
-				(typeof (value) == "boolean" && resultType == "Boolean"))
+			if (typeof (value) == resultType)
 				return value;
 
 			return null;
@@ -257,6 +257,11 @@ export class ExpressionUtils {
 						return false;
 					}
 
+					if (/^".*"$/g.test(word.text)) {
+						expressionPart[i].partType = ExpressionPartType.String;
+						break;
+					}
+
 					let num = ExpressionUtils.CheckNumber(word.text);
 					if (num != null) {
 						word.text = num.toString();
@@ -333,6 +338,9 @@ export class ExpressionUtils {
 		let result = { resultStr: "", isError: false };
 		for (let i = 0; i < expressionParts.length; i++) {
 			switch (expressionParts[i].partType) {
+				case ExpressionPartType.String:
+					tempWord.centerStr = (<Word>expressionParts[i].tag).text;
+					break;
 				case ExpressionPartType.Address:
 					if (option.globalVar.address != undefined) {
 						tempWord.centerStr = option.globalVar.address.toString();

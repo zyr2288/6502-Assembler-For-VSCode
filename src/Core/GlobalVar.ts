@@ -20,6 +20,22 @@ export class Project {
 /**全局变量 */
 export class GlobalVar {
 
+	/**所有消息时间 */
+	private static messageEvent: ((message: string, filePath: string, lineNumber: number) => void)[] = [];
+
+	/**绑定Message事件 */
+	static BindingMessageEvent(event: (message: string, filePath: string, lineNumber: number) => void) {
+		if (!this.messageEvent.includes(event))
+			GlobalVar.messageEvent.push(event);
+	}
+
+	/**推送消息 */
+	static PushMessage(message: string, filePath: string, lineNumber: number) {
+		GlobalVar.messageEvent.forEach(value => {
+			value(message, filePath, lineNumber);
+		});
+	}
+
 	/**编译地址 */
 	address?: number;
 	/**基础地址 */

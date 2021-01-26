@@ -70,9 +70,6 @@ export class BaseAnalyse {
 	 * @param baseLines 所有行
 	 */
 	static MainAnalyse(globalVar: GlobalVar, baseLines: BaseLine[]) {
-		if (MyError.isError)
-			return;
-
 		let params: BaseParams = { globalVar: globalVar, allLines: baseLines, index: 0 }
 		for (let i = 0; i < baseLines.length; i++) {
 			if (baseLines[i].ignore)
@@ -388,7 +385,7 @@ export class BaseAnalyse {
 		let exp = <Word>baseLine.expression;
 		let option = {
 			fileIndex: baseLine.fileIndex,
-			lineNumber: baseLine.fileIndex,
+			lineNumber: baseLine.lineNumber,
 			comment: baseLine.comment,
 			macro: <Macro | undefined>undefined
 		};
