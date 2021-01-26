@@ -26,6 +26,8 @@ enum CompletionType {
 	Mark
 }
 
+enum RangeType { None, DataGroup, Macro }
+
 export class Completion extends vscode.CompletionItem {
 
 	/**所有编译器指令 */
@@ -201,7 +203,12 @@ export class Completion extends vscode.CompletionItem {
 		if (!project)
 			return { items: [] };
 
-		let type = Completion.GetCommand(beforeText);
+		let helper = { type: CompletionType.None, otherMark: <string[]>[] };
+		if (Completion.GetRange(document.getText(), document.offsetAt(position)).rangeType != RangeType.None) {
+
+		}
+
+		helper.type = Completion.GetCommand(beforeText);
 		return Completion.GetCompletionList(text.text, position, type, project.project.globalVar, project.index, context.triggerCharacter);
 	}
 	//#endregion 智能提示
@@ -267,6 +274,28 @@ export class Completion extends vscode.CompletionItem {
 	//#endregion 获取帮助
 
 	/***********/
+
+	//#region 获取区间
+	/**
+	 * 获取区间
+	 * @param text 所有文本
+	 * @param position 位置
+	 */
+	private static GetRange(text: string, position: number) {
+		let result = { rangeType: RangeType.None, inMacro: "" };
+
+		let match: RegExpExecArray | null;
+		while (match = /(?<=\.D[BW]G.*\r?\n)(.*\r?\n)*?(?=.*\.ENDD)/ig.exec(text)) {
+			if (position >= match.index && position < match.index + match[0].length) {
+				result.rangeType = RangeType.DataGroup;
+				return result;
+			}
+		}
+
+
+		return result;
+	}
+	//#endregion 获取区间
 
 	//#region 获取之前文本匹配的命令
 	/**
