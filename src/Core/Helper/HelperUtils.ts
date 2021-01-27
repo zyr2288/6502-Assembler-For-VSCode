@@ -337,6 +337,7 @@ export class HelperUtils {
 				return;
 
 			let projects: ProjectConfig[] = Config.ReadProperty([], "projects");
+			let needName = projects.length > 1;
 			let result = "";
 			for (let i = 0; i < projects.length; i++) {
 				if (Utils.StringIsEmpty(projects[i].entry))
@@ -352,12 +353,15 @@ export class HelperUtils {
 				if (projects[i].patchFile)
 					WriteIntoToFile(lines, projects[i].patchFile);
 
-				if (projects[i].copyCodeToClipboard)
-					result += `${Utils.ByteToString(GetAsmResult(lines))}`;
+				if (projects[i].copyCodeToClipboard) {
+					if (needName)
+						result += `${projects[i].name}:\r\n`;
 
+					result += `${Utils.ByteToString(GetAsmResult(lines))}\r\n`;
+				}
 			}
 
-			// CompileAllText(text.getText(), filePath, true, config.defaultConfig);
+			vscode.env.clipboard.writeText(result);
 		});
 		//#endregion 绑定命令编译主文件
 
