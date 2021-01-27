@@ -4,8 +4,9 @@
 		"name": "ZENG GE"
 	},
 	"displayName": "6502 Assembler",
-	"description": "",
-	"version": "0.0.1",
+	"description": "A simple 6502 assembler plugin for VSCode",
+	"version": "0.1.0",
+	"icon": "syntaxes/fc.png",
 	"engines": {
 		"vscode": "^1.52.0"
 	},
@@ -21,8 +22,12 @@
 	"contributes": {
 		"commands": [
 			{
-				"command": "6502-assembler.helloWorld",
-				"title": "Hello World"
+				"command": "6502extension.compliteThis",
+				"title": "编译本文件"
+			},
+			{
+				"command": "6502extension.compliteMain",
+				"title": "编译主文件"
 			}
 		],
 		"languages": [
@@ -42,6 +47,34 @@
 				"language": "asm6502",
 				"scopeName": "source.asm.asm6502",
 				"path": "./syntaxes/asm6502.tmLanguage.json"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"when": "editorLangId == asm6502",
+					"command": "6502extension.compliteThis",
+					"group": "z_command"
+				},
+				{
+					"when": "editorLangId == asm6502",
+					"command": "6502extension.compliteMain",
+					"group": "z_command"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "6502extension.compliteThis",
+				"key": "ctrl+f5",
+				"mac": "cmd+f5",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "6502extension.compliteMain",
+				"key": "ctrl+f6",
+				"mac": "cmd+f6",
+				"when": "editorTextFocus"
 			}
 		]
 	},

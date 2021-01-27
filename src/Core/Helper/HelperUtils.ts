@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
-import { Config } from "../Config";
+import { Config, ProjectConfig } from "../Config";
 import { AutoUpperCaseRegex } from "../MyConst";
 import { GlobalVar, Project } from "../GlobalVar";
 import { Helper } from "./Helper";
@@ -12,12 +12,15 @@ import Language from "../Language";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { MarkScope } from "../Data/Mark";
 import { Macro } from "../Data/Macro";
+import { ExtensionCommandNames } from "./HelperConst";
+import { CompileAllText, GetAsmResult, WriteIntoToFile, WriteToFile } from "../AsmLine/Compile";
 
 export class HelperUtils {
 
 	private static freshThreadId: NodeJS.Timeout;
 	private static freshTime = 1000;
 	private static lastFreshFile: vscode.TextDocumentChangeEvent[] = [];
+	static legend = new vscode.SemanticTokensLegend(["class"]);
 	private static message = {
 		/**所有错误，key为文件index */
 		errors: <{ [key: string]: vscode.Diagnostic[] }>{},
@@ -34,7 +37,11 @@ export class HelperUtils {
 			return;
 
 		let temp = vscode.workspace.workspaceFolders[0];
-		let config = vscode.Uri.file(path.join(temp.uri.fsPath, "6502-project.json"));
+		let tempPath = `${temp.uri.fsPath}${path.sep}.vscode`;
+		if (!fs.existsSync(tempPath))
+			fs.mkdirSync(tempPath);
+
+		let config = vscode.Uri.file(path.join(tempPath, "6502-project.json"));
 		if (!fs.existsSync(config.fsPath)) {
 			let data = JSON.stringify(Config.defaultConfig);
 			fs.writeFileSync(config.fsPath, data, { encoding: "utf8" });
@@ -42,8 +49,6 @@ export class HelperUtils {
 		} else {
 			Config.config = JSON.parse(fs.readFileSync(config.fsPath, { encoding: "utf8" }));
 		}
-
-
 	}
 	//#endregion 读取配置文件
 
@@ -265,6 +270,99 @@ export class HelperUtils {
 		return new vscode.Hover(result);
 	}
 	//#endregion 鼠标停留获取变量信息
+
+	//#region 自定义高亮
+	/**
+	 * 自定义高亮
+	 * @param document 
+	 * @param token 
+	 */
+	static ProvideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.SemanticTokens> {
+		let project = HelperUtils.GetFileProject(document.fileName);
+		if (!project)
+			return;
+
+		if (!project.project.globalVar.marks.macroRegex)
+			return;
+
+		const tokensBuilder = new vscode.SemanticTokensBuilder(HelperUtils.legend);
+
+		let regex = new RegExp(project.project.globalVar.marks.macroRegex, "g");
+		let match: RegExpExecArray | null;
+		let text = document.getText();
+		while (match = regex.exec(text)) {
+			let word = Utils.StringTrim(match[0], match.index);
+			let start = document.positionAt(word.startColumn);
+			let end = document.positionAt(word.startColumn + word.text.length);
+			tokensBuilder.push(new vscode.Range(start, end), "class");
+		}
+		return tokensBuilder.build();
+	}
+	//#endregion 自定义高亮
+
+	//#region 注册自定义命令
+	/**
+	 * 注册自定义命令
+	 */
+	static RegisterMyCommand() {
+
+		//#region 绑定命令编译本文件
+		vscode.commands.registerCommand(ExtensionCommandNames.CompliteThis, async () => {
+			if (!vscode.window.activeTextEditor)
+				return;
+
+			let text = vscode.window.activeTextEditor.document.getText();
+			let filePath = vscode.window.activeTextEditor.document.uri;
+
+			HelperUtils.ReadConfig();
+
+			let lines = CompileAllText(text, filePath.fsPath);
+			let writeToFile = Config.ReadProperty("", "singleFile", "outFile");
+			if (writeToFile) {
+				WriteToFile(lines, writeToFile);
+			}
+
+			let copy = Config.ReadProperty(false, "singleFile", "copyCodeToClipboard");
+			if (copy) {
+				vscode.env.clipboard.writeText(Utils.ByteToString(GetAsmResult(lines)));
+			}
+		});
+		//#endregion 绑定命令编译本文件
+
+		//#region 绑定命令编译主文件
+		vscode.commands.registerCommand(ExtensionCommandNames.CompliteMain, async () => {
+			HelperUtils.ReadConfig();
+
+			if (!vscode.workspace.workspaceFolders)
+				return;
+
+			let projects: ProjectConfig[] = Config.ReadProperty([], "projects");
+			let result = "";
+			for (let i = 0; i < projects.length; i++) {
+				if (Utils.StringIsEmpty(projects[i].entry))
+					continue;
+
+				let uri = Utils.GetFilePath(projects[i].entry, vscode.workspace.workspaceFolders[0].uri.fsPath);
+				let text = fs.readFileSync(uri.fsPath, { encoding: "utf8" });
+
+				let lines = CompileAllText(text, uri.fsPath);
+				if (projects[i].outFile)
+					WriteToFile(lines, projects[i].outFile);
+
+				if (projects[i].patchFile)
+					WriteIntoToFile(lines, projects[i].patchFile);
+
+				if (projects[i].copyCodeToClipboard)
+					result += `${Utils.ByteToString(GetAsmResult(lines))}`;
+
+			}
+
+			// CompileAllText(text.getText(), filePath, true, config.defaultConfig);
+		});
+		//#endregion 绑定命令编译主文件
+
+	}
+	//#endregion 注册自定义命令
 
 	/***** 工具 *****/
 

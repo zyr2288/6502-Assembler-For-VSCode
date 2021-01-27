@@ -6,7 +6,7 @@ import { ExtensionCommandNames, FileExtension } from "./HelperConst";
 import { GlobalVar } from "../GlobalVar";
 import { MarkScope } from "../Data/Mark";
 import { HelperUtils } from "./HelperUtils";
-import { Utils } from "../Utils/Utils";
+import { Macro } from "../Data/Macro";
 
 const InstrumentWithoutExpression = [
 	"TXA", "TAX", "TYA", "TAY", "TXS", "TSX",
@@ -15,6 +15,13 @@ const InstrumentWithoutExpression = [
 	"INX", "INY", "DEX", "DEY",
 	"NOP",
 	"RTS", "RTI", "BRK"
+]
+
+const InMacroCommand = [
+	".IF", ".IFDEF", ".IFNDEF", "ELSEIF", "ELSE", "ENDIF",
+	".HEX", ".DB", ".DW",
+	".REPEAT", ".ENDR",
+	".MSG"
 ]
 
 enum CompletionType {
@@ -32,6 +39,8 @@ export class Completion extends vscode.CompletionItem {
 
 	/**所有编译器指令 */
 	private static commandSuggestion: Completion[] = [];
+	/**在Macro内支持的编译器指令 */
+	private static inMacroCommand: Completion[] = [];
 	/**所有汇编指令 */
 	private static instrumentSuggestion: Completion[] = [];
 	/**文件路径 */
@@ -52,7 +61,7 @@ export class Completion extends vscode.CompletionItem {
 				item.insertText = new vscode.SnippetString(`${key} `);
 			}
 			item.sortText = "1";
-			this.instrumentSuggestion.push(item);
+			Completion.instrumentSuggestion.push(item);
 		}
 
 		// 添加命令
@@ -101,7 +110,9 @@ export class Completion extends vscode.CompletionItem {
 					break;
 			}
 			item.sortText = "1";
-			this.commandSuggestion.push(item);
+			Completion.commandSuggestion.push(item);
+			if (InMacroCommand.includes(AssemblerCommands[i]))
+				Completion.inMacroCommand.push(item);
 		}
 
 		// 注册查找路径命令
@@ -203,13 +214,16 @@ export class Completion extends vscode.CompletionItem {
 		if (!project)
 			return { items: [] };
 
-		let helper = { type: CompletionType.None, otherMark: <string[]>[] };
-		if (Completion.GetRange(document.getText(), document.offsetAt(position)).rangeType != RangeType.None) {
-
+		let helper = { type: CompletionType.None, macroName: <string | undefined>undefined };
+		let temp = Completion.GetRange(document.getText(), document.offsetAt(position));
+		if (temp.rangeType == RangeType.DataGroup) {
+			helper.type = CompletionType.Mark;
+		} else {
+			helper.macroName = temp.macroName;
+			helper.type = Completion.GetCommand(beforeText);
 		}
 
-		helper.type = Completion.GetCommand(beforeText);
-		return Completion.GetCompletionList(text.text, position, type, project.project.globalVar, project.index, context.triggerCharacter);
+		return Completion.GetCompletionList(text.text, position, helper, project.project.globalVar, project.index, context.triggerCharacter);
 	}
 	//#endregion 智能提示
 
@@ -218,22 +232,31 @@ export class Completion extends vscode.CompletionItem {
 	 * 获取帮助
 	 * @param prefix 前缀
 	 * @param position 光标位置
-	 * @param type 帮助类型
+	 * @param helperType 帮助类型
 	 * @param globalVar 全局变量
 	 * @param fileIndex 文件索引
 	 * @param trigger 触发字符
 	 */
 	private static GetCompletionList(
-		prefix: string, position: vscode.Position, type: CompletionType, globalVar: GlobalVar, fileIndex: number, trigger?: string
+		prefix: string,
+		position: vscode.Position,
+		helperType: { type: CompletionType, macroName?: string },
+		globalVar: GlobalVar,
+		fileIndex: number,
+		trigger?: string
 	): vscode.ProviderResult<vscode.CompletionItem[] | vscode.CompletionList> {
 		let result: Completion[] = [];
 		let option = { fileIndex: fileIndex, lineNumber: position.line };
-		if (type == CompletionType.None) {
+		if (helperType.type == CompletionType.None) {
 			return { items: [] };
-		} else if (type == CompletionType.Base) {
+		} else if (helperType.type == CompletionType.Base) {
 			switch (trigger) {
 				case ".":
-					result = Completion.CopyCompletions(Completion.commandSuggestion);
+					if (helperType.macroName) {
+						result = Completion.CopyCompletions(Completion.inMacroCommand);
+					} else {
+						result = Completion.CopyCompletions(Completion.commandSuggestion);
+					}
 					break;
 				default:
 					result = Completion.CopyCompletions(Completion.instrumentSuggestion);
@@ -248,6 +271,18 @@ export class Completion extends vscode.CompletionItem {
 			}
 			return { items: result };
 		}
+
+		if (helperType.macroName) {
+			let mark = globalVar.marks.FindMark(helperType.macroName, option);
+			if (mark && mark.tag) {
+				let macro: Macro = mark.tag;
+				macro.parameters.forEach(value => {
+					let item = new Completion(value.text.text, vscode.CompletionItemKind.Property);
+					result.push(item);
+				});
+			}
+		}
+
 		let scope = prefix.startsWith(".") ? MarkScope.Local : MarkScope.Global;
 
 		prefix = prefix.substring(0, prefix.lastIndexOf("."));
@@ -257,8 +292,7 @@ export class Completion extends vscode.CompletionItem {
 
 		let markIDs = globalVar.marks.marks[id].childrenIDs;
 		for (let i = 0; i < markIDs.length; i++) {
-			let item = new Completion(globalVar.marks.marks[markIDs[i]].text.text);				// 显示的文本
-			item.kind = vscode.CompletionItemKind.Field;
+			let item = new Completion(globalVar.marks.marks[markIDs[i]].text.text, vscode.CompletionItemKind.Field);				// 显示的文本
 			switch (trigger) {
 				case ".":
 					item.filterText = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
@@ -269,6 +303,7 @@ export class Completion extends vscode.CompletionItem {
 			item.detail = globalVar.marks.marks[markIDs[i]].comment;
 			result.push(item);
 		}
+
 		return { items: result };
 	}
 	//#endregion 获取帮助
@@ -282,16 +317,25 @@ export class Completion extends vscode.CompletionItem {
 	 * @param position 位置
 	 */
 	private static GetRange(text: string, position: number) {
-		let result = { rangeType: RangeType.None, inMacro: "" };
+		let result = { rangeType: RangeType.None, macroName: <string | undefined>undefined };
 
+		let regex = /(?<=\.D[BW]G.*\r?\n)(.*\r?\n)*?(?=.*\.ENDD)/ig;
 		let match: RegExpExecArray | null;
-		while (match = /(?<=\.D[BW]G.*\r?\n)(.*\r?\n)*?(?=.*\.ENDD)/ig.exec(text)) {
+		while (match = regex.exec(text)) {
 			if (position >= match.index && position < match.index + match[0].length) {
 				result.rangeType = RangeType.DataGroup;
 				return result;
 			}
 		}
 
+		regex = /(?<=\.MACRO\s+(.*)\s+.*\r?\n)(.*\r?\n)*?(?=.*\.ENDM)/ig;
+		while (match = regex.exec(text)) {
+			if (position >= match.index && position < match.index + match[0].length) {
+				result.rangeType = RangeType.Macro;
+				result.macroName = match[1];
+				return result;
+			}
+		}
 
 		return result;
 	}

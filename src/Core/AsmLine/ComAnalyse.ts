@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import { TaskGroup } from "vscode";
 import { DataGroup } from "../Data/DataGroup";
 import { Macro } from "../Data/Macro";
 import { Mark } from "../Data/Mark";
@@ -12,6 +11,7 @@ import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { Utils } from "../Utils/Utils";
 import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandDxGTag, AsmLineCommandMacroTag } from "./AsmLine";
 
+//#region 分析命令
 /**
  * 分析命令
  * @param params 参数
@@ -78,6 +78,7 @@ export function ComAnalyse(params: MyParameters) {
 			break;
 	}
 }
+//#endregion 分析命令
 
 //#region BASE 命令
 function Command_Base(expression: Word, params: MyParameters) {

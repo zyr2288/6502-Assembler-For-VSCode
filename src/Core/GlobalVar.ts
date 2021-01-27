@@ -50,7 +50,7 @@ export class GlobalVar {
 	isCompile: boolean = false;
 	/**编译状态，0为第一次，2为最后一次 */
 	compileType: CompileType = CompileType.FirstTime;
-	/**是否是编译 */
+	/**编译最大次数 */
 	compileTimesMax: number = 2;
 
 	//#region 获取文件索引

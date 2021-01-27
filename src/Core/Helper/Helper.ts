@@ -23,18 +23,6 @@ export class Helper {
 
 		HelperUtils.ReadConfig();
 		HelperUtils.BingdingMessageEvent();
-		Completion.Init();
-
-		// 更新折叠信息
-		vscode.languages.registerFoldingRangeProvider(FileExtension, { provideFoldingRanges: HelperUtils.ProvideFoldingRanges });
-		// 智能提示
-		vscode.languages.registerCompletionItemProvider(FileExtension, { provideCompletionItems: Completion.ProvideCompletionItem }, ".", ":");
-		// 自动大写与文件更新
-		vscode.workspace.onDidChangeTextDocument(HelperUtils.DocumentChange);
-		// 查找定义
-		vscode.languages.registerDefinitionProvider(FileExtension, { provideDefinition: HelperUtils.FindDefinition });
-		// 鼠标停留提示
-		vscode.languages.registerHoverProvider(FileExtension, { provideHover: HelperUtils.HoverHelp });
 
 		MyError.BindingErrorEvent(Helper.UpdateError, Helper.ClearAllError);
 
@@ -42,8 +30,8 @@ export class Helper {
 			if (!vscode.workspace.workspaceFolders)
 				continue;
 
-			let includes = Config.ReadProperty(i, "includes");
-			let excludes = Config.ReadProperty(i, "excludes");
+			let includes = Config.ReadProperty("{**/*.65s}", "projects", i, "includes");
+			let excludes = Config.ReadProperty("{}", "projects", i, "excludes");
 			let files = await vscode.workspace.findFiles(includes, excludes);
 
 			let project = new Project();
@@ -67,6 +55,30 @@ export class Helper {
 			MyError.UpdateError();
 			Helper.projects[i] = project;
 		}
+
+		// 更新折叠信息
+		vscode.languages.registerFoldingRangeProvider(FileExtension, { provideFoldingRanges: HelperUtils.ProvideFoldingRanges });
+
+		if (Config.config.suggestion) {
+			// 智能提示
+			Completion.Init();
+			vscode.languages.registerCompletionItemProvider(FileExtension, { provideCompletionItems: Completion.ProvideCompletionItem }, ".", ":");
+		}
+
+		// 自动大写与文件更新
+		vscode.workspace.onDidChangeTextDocument(HelperUtils.DocumentChange);
+		// 查找定义
+		vscode.languages.registerDefinitionProvider(FileExtension, { provideDefinition: HelperUtils.FindDefinition });
+		// 鼠标停留提示
+		vscode.languages.registerHoverProvider(FileExtension, { provideHover: HelperUtils.HoverHelp });
+		// 自定义高亮
+		vscode.languages.registerDocumentSemanticTokensProvider(
+			FileExtension,
+			{ provideDocumentSemanticTokens: HelperUtils.ProvideDocumentSemanticTokens },
+			HelperUtils.legend
+		);
+
+		HelperUtils.RegisterMyCommand();
 	}
 
 	//#region 更新错误提示

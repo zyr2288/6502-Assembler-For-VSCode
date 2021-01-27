@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as path from "path";
+import * as fs from "fs";
 import { Word } from "../Interface";
 
 
@@ -104,8 +105,11 @@ export class Utils {
 		if (/^([a-zA-Z]\:)?\//.test(target)) {
 			return vscode.Uri.file(target);
 		} else {
+			if (fs.statSync(basePath).isFile())
+				basePath = path.dirname(basePath);
+
 			return vscode.Uri.file(
-				path.join(path.dirname(basePath), target)
+				path.join(basePath, target)
 			);
 		}
 	}
