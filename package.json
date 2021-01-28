@@ -76,7 +76,14 @@
 				"mac": "cmd+f6",
 				"when": "editorTextFocus"
 			}
-		]
+		],
+		"configurationDefaults": {
+			"[asm6502]": {
+				"editor.fontSize": 20,
+				"editor.tabSize": 8,
+				"editor.wordBasedSuggestions": false
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

@@ -369,26 +369,42 @@ export class HelperUtils {
 	//#endregion 注册自定义命令
 
 	//#region 监视文件变动
+	/**
+	 * 监视文件变动
+	 */
 	static CreateFileWatcher(): void {
 
 		let watcher = vscode.workspace.createFileSystemWatcher("**/*.65s", false, true, false);
+		let watcher2 = vscode.workspace.onDidRenameFiles(e => {
+			console.log(e);
+		})
 
 		// 监视增加文件
 		watcher.onDidCreate(async (fileUri) => {
-
-			HelperUtils.ReadConfig();
-
-			// let fileIndex = HelperUtils.GetFileIndex(fileUri.fsPath);
-			// let text = await vscode.workspace.openTextDocument(fileUri);
-			// Helper.RefreshFileHelper(text.getText(), fileIndex);
+			// HelperUtils.ReadConfig();
+			// Helper.projects.forEach(async (value, index) =>  {
+			// 	let filter = HelperUtils.GetConfigFiles(index);
+			// 	let files = await vscode.workspace.findFiles(filter.includes, filter.excludes);
+			// 	files = files.filter(value => {
+			// 		return value.fsPath == fileUri.fsPath;
+			// 	});
+			// 	value.globalVar.GetFileIndex(fileUri.fsPath);
+			// 	let text = fs.readFileSync(fileUri.fsPath, { encoding: "utf8" });
+			// 	HelperUtils.RefreshFile(fileUri.fsPath, text)
+			// });
 		});
 
 		// 监视删除文件
 		watcher.onDidDelete((fileUri) => {
-			// let fileIndex = HelperUtils.GetFileIndex(fileUri.fsPath);
-			// HelperVar.ClearWithFileIndex(fileIndex);
-			// Completion.ClearFileCompletion(fileIndex);
-			// Helper.ClearError(fileIndex);
+			// HelperUtils.ReadConfig();
+
+			// Helper.projects.forEach(value => {
+			// 	let index = value.globalVar.GetFileIndex(fileUri.fsPath, false);
+			// 	if (index != -1) {
+			// 		value.globalVar.marks.DeleteFileMarks(index);
+			// 		value.globalVar.filePaths.splice(index, 1);
+			// 	}
+			// });
 		});
 	}
 	//#endregion 监视文件变动

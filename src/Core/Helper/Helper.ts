@@ -8,7 +8,6 @@ import { MyError } from "../MyError";
 import { HelperUtils } from "./HelperUtils";
 import { FileExtension } from "./HelperConst";
 import { Completion } from "./Completion";
-import { Utils } from "../Utils/Utils";
 
 export class Helper {
 	private static error = {
@@ -58,7 +57,7 @@ export class Helper {
 
 		// 更新折叠信息
 		vscode.languages.registerFoldingRangeProvider(FileExtension, { provideFoldingRanges: HelperUtils.ProvideFoldingRanges });
-			
+
 		// 智能提示
 		if (Config.config.suggestion) {
 			Completion.Init();
@@ -78,6 +77,7 @@ export class Helper {
 			HelperUtils.legend
 		);
 
+		HelperUtils.CreateFileWatcher();
 		HelperUtils.RegisterMyCommand();
 	}
 
