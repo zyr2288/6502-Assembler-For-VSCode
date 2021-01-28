@@ -8,6 +8,7 @@ import { MyError } from "../MyError";
 import { HelperUtils } from "./HelperUtils";
 import { FileExtension } from "./HelperConst";
 import { Completion } from "./Completion";
+import { Utils } from "../Utils/Utils";
 
 export class Helper {
 	private static error = {
@@ -30,10 +31,9 @@ export class Helper {
 			if (!vscode.workspace.workspaceFolders)
 				continue;
 
-			let includes = Config.ReadProperty("{**/*.65s}", "projects", i, "includes");
-			let excludes = Config.ReadProperty("{}", "projects", i, "excludes");
-			let files = await vscode.workspace.findFiles(includes, excludes);
+			let filter = HelperUtils.GetConfigFiles(i);
 
+			let files = await vscode.workspace.findFiles(filter.includes, filter.excludes);
 			let project = new Project();
 			MyError.UpdateErrorFilePaths(project.globalVar.filePaths);
 			let baseLines: BaseLine[] = [];
@@ -58,9 +58,9 @@ export class Helper {
 
 		// 更新折叠信息
 		vscode.languages.registerFoldingRangeProvider(FileExtension, { provideFoldingRanges: HelperUtils.ProvideFoldingRanges });
-
+			
+		// 智能提示
 		if (Config.config.suggestion) {
-			// 智能提示
 			Completion.Init();
 			vscode.languages.registerCompletionItemProvider(FileExtension, { provideCompletionItems: Completion.ProvideCompletionItem }, ".", ":");
 		}

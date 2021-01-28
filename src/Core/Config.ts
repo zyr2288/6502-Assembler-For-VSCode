@@ -1,8 +1,8 @@
 export interface ProjectConfig {
 	name: string;
 	entry: string;
-	includes: string;
-	excludes: string;
+	includes: string[];
+	excludes: string[];
 	outFile: string;
 	patchFile: string;
 	copyCodeToClipboard: boolean;
@@ -16,8 +16,8 @@ export class Config {
 		projects: [{
 			name: "project1",
 			entry: "main.65s",
-			includes: "{**/*.65s}",
-			excludes: "{}",
+			includes: ["**/*.65s"],
+			excludes: [],
 			outFile: "",
 			patchFile: "",
 			copyCodeToClipboard: false
@@ -31,8 +31,8 @@ export class Config {
 		projects: [{
 			name: "project1",
 			entry: "main.65s",
-			includes: "{**/*.65s}",
-			excludes: "{}",
+			includes: ["**/*.65s"],
+			excludes: [],
 			outFile: "",
 			patchFile: "",
 			copyCodeToClipboard: false

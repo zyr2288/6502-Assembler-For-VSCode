@@ -4,6 +4,7 @@ import { BaseAnalyse } from "../Base/BaseAnalyse";
 import { Config } from "../Config";
 import { Project } from "../GlobalVar";
 import { CompileType, MyParameters } from "../Interface";
+import Language from "../Language";
 import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
 import { Utils } from "../Utils/Utils";
@@ -115,15 +116,20 @@ export function WriteIntoToFile(asmLine: AsmLine[], filePath: string) {
 
 	let uri = Utils.GetFilePath(filePath, vscode.workspace.workspaceFolders[0].uri.fsPath);
 	let temp = GetAllAsmByteResult(asmLine);
-	let binary = new Uint8Array(1);
-	let fileOpenId = fs.openSync(uri.fsPath, "w");
+	if (!fs.existsSync(uri.fsPath)) {
+		let err = new MyError(Language.ErrorMessage.FileIsNotExist, uri.fsPath);
+		MyError.PushError(err);
+		return;
+	}
+
+	let buffer = new Uint8Array(fs.readFileSync(uri.fsPath));
 	for (let i = 0; i < temp.length; i++) {
 		if (temp[i] == undefined)
 			continue;
 
-		binary[0] = temp[i];
-		fs.writeSync(fileOpenId, binary, 0, 0, i);
+		buffer[i] = temp[i];
 	}
+	fs.writeFileSync(uri.fsPath, buffer);
 }
 //#endregion 嵌入一个文件
 

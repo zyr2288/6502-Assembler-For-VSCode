@@ -12,7 +12,7 @@ import Language from "../Language";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { MarkScope } from "../Data/Mark";
 import { Macro } from "../Data/Macro";
-import { ExtensionCommandNames } from "./HelperConst";
+import { ExtensionCommandNames, FileExtension } from "./HelperConst";
 import { CompileAllText, GetAsmResult, WriteIntoToFile, WriteToFile } from "../AsmLine/Compile";
 
 export class HelperUtils {
@@ -368,7 +368,61 @@ export class HelperUtils {
 	}
 	//#endregion 注册自定义命令
 
+	//#region 监视文件变动
+	static CreateFileWatcher(): void {
+
+		let watcher = vscode.workspace.createFileSystemWatcher("**/*.65s", false, true, false);
+
+		// 监视增加文件
+		watcher.onDidCreate(async (fileUri) => {
+
+			HelperUtils.ReadConfig();
+
+			// let fileIndex = HelperUtils.GetFileIndex(fileUri.fsPath);
+			// let text = await vscode.workspace.openTextDocument(fileUri);
+			// Helper.RefreshFileHelper(text.getText(), fileIndex);
+		});
+
+		// 监视删除文件
+		watcher.onDidDelete((fileUri) => {
+			// let fileIndex = HelperUtils.GetFileIndex(fileUri.fsPath);
+			// HelperVar.ClearWithFileIndex(fileIndex);
+			// Completion.ClearFileCompletion(fileIndex);
+			// Helper.ClearError(fileIndex);
+		});
+	}
+	//#endregion 监视文件变动
+
 	/***** 工具 *****/
+
+	//#region 获取文件筛选
+	/**
+	 * 获取文件筛选
+	 * @param projectIndex 项目索引
+	 */
+	static GetConfigFiles(projectIndex: number) {
+		let temp: string[] = Config.ReadProperty(["**/*.65s"], "projects", projectIndex, "includes");
+
+		let includes = "";
+		temp.forEach(value => {
+			if (!Utils.StringIsEmpty(value)) {
+				includes += value.trim() + ",";
+			}
+		});
+		includes = "{" + includes.substring(0, includes.length - 1) + "}";
+
+		temp = Config.ReadProperty([], "projects", projectIndex, "excludes");
+		let excludes = "";
+		temp.forEach(value => {
+			if (!Utils.StringIsEmpty(value)) {
+				excludes += value.trim() + ",";
+			}
+		});
+		excludes = "{" + excludes.substring(0, excludes.length - 1) + "}";
+
+		return { includes: includes, excludes: excludes };
+	}
+	//#endregion 获取文件筛选
 
 	//#region 获取文件所在的工程
 	/**
@@ -460,5 +514,6 @@ export class HelperUtils {
 		return (Array(total).join(pad) + source).slice(-total);
 	}
 	//#endregion 给字符串左边补足位
+
 
 }

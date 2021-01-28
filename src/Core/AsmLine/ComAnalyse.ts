@@ -9,7 +9,7 @@ import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { Utils } from "../Utils/Utils";
-import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandDxGTag, AsmLineCommandMacroTag } from "./AsmLine";
+import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandDxGTag, AsmLineCommandDxTag, AsmLineCommandMacroTag } from "./AsmLine";
 
 //#region 分析命令
 /**
@@ -42,9 +42,18 @@ export function ComAnalyse(params: MyParameters) {
 			break;
 		}
 
+		case ".DB":
+		case ".DW":
+			Command_Dx(asmLine, command.text, params);
+			break;
+
 		case ".DBG":
 		case ".DWG":
 			Command_DXG(params, command.text);
+			break;
+
+		case ".HEX":
+			Command_Hex(asmLine, params);
 			break;
 
 		case ".MACRO":
@@ -201,6 +210,54 @@ function Command_Incbin(expression: Word, params: MyParameters) {
 }
 //#endregion INCBIN 命令
 
+//#region DB/DW 命令
+function Command_Dx(asmLine: AsmLine, command: ".DB" | ".DW", params: MyParameters) {
+	let length = command == ".DB" ? 1 : 2;
+	let max = length == 1 ? 0x100 : 0x10000;
+	let tag: AsmLineCommandDxTag = asmLine.tag;
+	asmLine.SetAddress(params.globalVar);
+
+	let isFinished = true;
+	let option = { globalVar: params.globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: params.macro };
+	if (!asmLine.result)
+		asmLine.result = [];
+
+	for (let i = 0; i < tag.part.length; i++) {
+
+		let result = ExpressionUtils.GetExpressionResult(tag.part[i], option, "number");
+		if (!result) {
+			isFinished = false;
+			break;
+		}
+
+		if (result != null && result >= max) {
+			let err = new MyError(Language.ErrorMessage.ValueOutOfRange, tag.part[i].text);
+			err.SetPosition({
+				fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber,
+				startPosition: tag.part[i].startColumn, length: tag.part[i].text.length
+			});
+			MyError.PushError(err);
+			isFinished = false;
+			break;
+		}
+
+		switch (length) {
+			case 2:
+				asmLine.result.push(result & 0xFF);
+				asmLine.result.push(result >> 8 & 0xFF);
+				break;
+			case 1:
+				asmLine.result.push(result & 0xFF);
+				break;
+		}
+	}
+
+	asmLine.isFinished = isFinished;
+	asmLine.resultLength = tag.part.length * length;
+	params.globalVar.AddressAdd(asmLine.resultLength);
+}
+//#endregion DB/DW 命令
+
 //#region DBG/DWG 命令
 function Command_DXG(params: MyParameters, type: ".DBG" | ".DWG") {
 
@@ -236,7 +293,9 @@ function Command_DXG(params: MyParameters, type: ".DBG" | ".DWG") {
 
 		switch (length) {
 			case 2:
+				asmLine.result.push(mark.value & 0xFF);
 				asmLine.result.push((mark.value >> 8) & 0xFF);
+				break;
 			case 1:
 				asmLine.result.push(mark.value & 0xFF);
 				break;
@@ -260,6 +319,24 @@ function Command_DXG(params: MyParameters, type: ".DBG" | ".DWG") {
 	params.globalVar.AddressAdd(asmLine.resultLength);
 }
 //#endregion DBG/DWG 命令
+
+//#region HEX 命令
+function Command_Hex(asmLine: AsmLine, params: MyParameters) {
+	let tag: AsmLineCommandCommonTag = asmLine.tag;
+	let word: Word = tag.expression;
+	let part = Utils.SplitWithRegex(/\s+/g, 0, word.text, word.startColumn);
+	asmLine.SetAddress(params.globalVar);
+	asmLine.result = [];
+	part.forEach(value => {
+		for (let i = 0; i < value.text.length; i += 2) {
+			asmLine.result?.push(parseInt(value.text.substring(i, i + 2), 16));
+		}
+	});
+	asmLine.isFinished = true;
+	asmLine.resultLength = asmLine.result.length;
+	params.globalVar.AddressAdd(asmLine.resultLength);
+}
+//#endregion HEX 命令
 
 //#region MACRO 命令
 function Command_Macro(asmLine: AsmLine) {

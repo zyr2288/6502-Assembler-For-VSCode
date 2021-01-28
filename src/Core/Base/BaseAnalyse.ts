@@ -344,6 +344,7 @@ export class BaseAnalyse {
 				part.forEach(value => {
 					ExpressionUtils.CheckExpressionCurrect(value, option);
 				});
+				baseLine.tag = part;
 				break;
 			}
 			//#endregion DB/DW 命令
