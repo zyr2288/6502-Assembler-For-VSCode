@@ -279,14 +279,11 @@ export class ExpressionUtils {
 							case ">":
 							case "<":
 								expressionPart[i].partType = ExpressionPartType.GetAndValue;
-								isNumber = false;
 								break;
 							case "*":
 								expressionPart[i].partType = ExpressionPartType.Address;
-								isNumber = false;
 								break;
 							case "-":
-								isNumber = false;
 								break;
 
 							default:

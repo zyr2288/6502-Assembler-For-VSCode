@@ -1,6 +1,7 @@
 import { GlobalVar } from "../GlobalVar";
 
 export const FileExtension = { scheme: "file", language: "asm6502", extension: ".65s" };
+export const ConfigFile = "6502-project.json";
 export enum ExtensionCommandNames {
 	/**获取文件路径 */
 	GetThisFilePath = "GetThisFilePath",

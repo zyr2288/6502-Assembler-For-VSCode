@@ -59,12 +59,19 @@ export class GlobalVar {
 	 * @param filePath 文件路径
 	 * @param add 是否添加，默认添加
 	 */
-	GetFileIndex(filePath: string, add = true) {
+	GetFileIndex(filePath: string, add = true): number {
 		let index = this.filePaths.indexOf(filePath);
 		if (index >= 0)
 			return index;
 
 		if (add) {
+			for (let i = 0; i < this.filePaths.length; i++) {
+				if (!this.filePaths[i]) {
+					this.filePaths[i] = filePath;
+					return i;
+				}
+			}
+
 			this.filePaths.push(filePath);
 			return this.filePaths.length - 1;
 		} else {

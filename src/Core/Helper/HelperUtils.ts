@@ -12,7 +12,7 @@ import Language from "../Language";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { MarkScope } from "../Data/Mark";
 import { Macro } from "../Data/Macro";
-import { ExtensionCommandNames, FileExtension } from "./HelperConst";
+import { ConfigFile, ExtensionCommandNames, FileExtension } from "./HelperConst";
 import { CompileAllText, GetAsmResult, WriteIntoToFile, WriteToFile } from "../AsmLine/Compile";
 
 export class HelperUtils {
@@ -25,10 +25,11 @@ export class HelperUtils {
 		/**所有错误，key为文件index */
 		errors: <{ [key: string]: vscode.Diagnostic[] }>{},
 		/**所有错误集合 */
-		errorCollection: vscode.languages.createDiagnosticCollection("asm6502"),
+		errorCollection: vscode.languages.createDiagnosticCollection(FileExtension.language),
 		/**输出结果 */
 		output: vscode.window.createOutputChannel("temp")
 	};
+	private static fileChangeName = false;
 
 	//#region 读取配置文件
 	static ReadConfig() {
@@ -41,7 +42,7 @@ export class HelperUtils {
 		if (!fs.existsSync(tempPath))
 			fs.mkdirSync(tempPath);
 
-		let config = vscode.Uri.file(path.join(tempPath, "6502-project.json"));
+		let config = vscode.Uri.file(path.join(tempPath, ConfigFile));
 		if (!fs.existsSync(config.fsPath)) {
 			let data = JSON.stringify(Config.defaultConfig);
 			fs.writeFileSync(config.fsPath, data, { encoding: "utf8" });
@@ -374,37 +375,54 @@ export class HelperUtils {
 	 */
 	static CreateFileWatcher(): void {
 
-		let watcher = vscode.workspace.createFileSystemWatcher("**/*.65s", false, true, false);
-		let watcher2 = vscode.workspace.onDidRenameFiles(e => {
-			console.log(e);
-		})
+		// 文件改名函数顺序 onDidRenameFiles -> onDidCreate -> onDidDelete
+
+		let watcher = vscode.workspace.createFileSystemWatcher(`**/*${FileExtension.extension}`, false, true, false);
+		vscode.workspace.onDidRenameFiles(e => {
+			HelperUtils.fileChangeName = true;
+			e.files.forEach(value => {
+				if (path.extname(value.newUri.fsPath) == FileExtension.extension && path.extname(value.oldUri.fsPath) == FileExtension.extension) {
+					Helper.projects.forEach(project => {
+						let temp = project.globalVar.filePaths.indexOf(value.oldUri.fsPath);
+						if (temp >= 0) {
+							project.globalVar.filePaths[temp] = value.newUri.fsPath;
+						}
+					});
+				}
+			})
+		});
 
 		// 监视增加文件
 		watcher.onDidCreate(async (fileUri) => {
-			// HelperUtils.ReadConfig();
-			// Helper.projects.forEach(async (value, index) =>  {
-			// 	let filter = HelperUtils.GetConfigFiles(index);
-			// 	let files = await vscode.workspace.findFiles(filter.includes, filter.excludes);
-			// 	files = files.filter(value => {
-			// 		return value.fsPath == fileUri.fsPath;
-			// 	});
-			// 	value.globalVar.GetFileIndex(fileUri.fsPath);
-			// 	let text = fs.readFileSync(fileUri.fsPath, { encoding: "utf8" });
-			// 	HelperUtils.RefreshFile(fileUri.fsPath, text)
-			// });
+			if (HelperUtils.fileChangeName)
+				return;
+
+			HelperUtils.ReadConfig();
+			Helper.projects.forEach(async (value, index) => {
+				let filter = HelperUtils.GetConfigFiles(index);
+				let files = await vscode.workspace.findFiles(filter.includes, filter.excludes);
+				files = files.filter(value => {
+					return value.fsPath == fileUri.fsPath;
+				});
+				value.globalVar.GetFileIndex(fileUri.fsPath);
+			});
 		});
 
 		// 监视删除文件
 		watcher.onDidDelete((fileUri) => {
-			// HelperUtils.ReadConfig();
+			if (HelperUtils.fileChangeName) {
+				HelperUtils.fileChangeName = false;
+				return;
+			}
 
-			// Helper.projects.forEach(value => {
-			// 	let index = value.globalVar.GetFileIndex(fileUri.fsPath, false);
-			// 	if (index != -1) {
-			// 		value.globalVar.marks.DeleteFileMarks(index);
-			// 		value.globalVar.filePaths.splice(index, 1);
-			// 	}
-			// });
+			HelperUtils.ReadConfig();
+			Helper.projects.forEach(value => {
+				let index = value.globalVar.GetFileIndex(fileUri.fsPath, false);
+				if (index != -1) {
+					value.globalVar.marks.DeleteFileMarks(index);
+					delete value.globalVar.filePaths[index];
+				}
+			});
 		});
 	}
 	//#endregion 监视文件变动

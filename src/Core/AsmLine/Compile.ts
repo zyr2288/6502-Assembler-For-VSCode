@@ -31,8 +31,10 @@ export function CompileAllText(text: string, filePath: string): AsmLine[] {
 	let baseLines = BaseAnalyse.BaseAnalyse(params.globalVar, filePath, text);
 	BaseAnalyse.MainAnalyse(params.globalVar, baseLines);
 
-	if (MyError.isError)
+	if (MyError.isError) {
+		MyError.UpdateError();
 		return [];
+	}
 
 	for (let compileTimes = 0; compileTimes < params.globalVar.compileTimesMax; compileTimes++) {
 
@@ -59,9 +61,12 @@ export function CompileAllText(text: string, filePath: string): AsmLine[] {
 				continue;
 
 			params.index = i;
+			console.log(params.allAsmLine[i]);
+
 			AsmLineAnalyse(params);
 			i = params.index;
 			if (MyError.isError) {
+				MyError.UpdateError();
 				return [];
 			}
 		}
