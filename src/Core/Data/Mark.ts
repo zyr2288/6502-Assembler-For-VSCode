@@ -2,7 +2,6 @@ import { Word } from "../Interface";
 import Language from "../Language";
 import { TempMarkReg } from "../MyConst";
 import { MyError } from "../MyError";
-import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { Utils } from "../Utils/Utils";
 import { DataGroup } from "./DataGroup";
 import { Macro } from "./Macro";
@@ -112,7 +111,7 @@ export class Marks {
 				mark.value = option.value;
 
 			this.tempMarks[option.fileIndex].push(mark);
-			return;
+			return mark;
 		}
 
 		// 如果是自定义函数内的标签
@@ -472,5 +471,18 @@ export class Marks {
 		return tempMarks[tempMarks.length - 1];
 	}
 	//#endregion 分割标签属性并添加
+
+	//#region 清除所有
+	/**
+	 * 清除所有
+	 */
+	ClearAll() {
+		this.marks = {};
+		this.markFiles = [];
+		this.tempMarks = {};
+		this.macroNames = [];
+		this.macroRegex = null;
+	}
+	//#endregion 清除所有
 
 }

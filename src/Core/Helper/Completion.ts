@@ -7,6 +7,8 @@ import { GlobalVar } from "../GlobalVar";
 import { MarkScope } from "../Data/Mark";
 import { HelperUtils } from "./HelperUtils";
 import { Macro } from "../Data/Macro";
+import { Utils } from "../Utils/Utils";
+import { DataGroup } from "../Data/DataGroup";
 
 const InstrumentWithoutExpression = [
 	"TXA", "TAX", "TYA", "TAY", "TXS", "TSX",
@@ -284,6 +286,38 @@ export class Completion extends vscode.CompletionItem {
 		}
 
 		let scope = prefix.startsWith(".") ? MarkScope.Local : MarkScope.Global;
+		if (trigger == ":") {
+			let part = Utils.SplitWithRegex(/:/g, 0, prefix);
+			part.splice(part.length - 1, 1);
+			let data: DataGroup | undefined = undefined;
+			if (part.length >= 1) {
+				let id = globalVar.marks.GetMarkId(part[0].text, scope, option);
+				data = globalVar.marks.marks[id].tag;
+			}
+
+			if (!data)
+				return { items: [] };
+
+			let temp = new Set(data.memberIds);
+			temp.forEach(value => {
+				if (globalVar.marks.marks[value]) {
+					let item = new Completion(globalVar.marks.marks[value].text.text, vscode.CompletionItemKind.EnumMember);
+					let datas = data?.memberIds.filter(dataValue => { return dataValue == value });
+					if (datas && datas.length > 1) {
+						let temp = "";
+						for (let i = 0; i < datas.length; i++)
+							temp += `${i},`;
+
+						temp = temp.substring(0, temp.length - 1);
+						// item.insertText = new vscode.SnippetString('Good ${1|morning,afternoon,evening|}. It is ${1}, right?');
+						item.insertText = new vscode.SnippetString(`${globalVar.marks.marks[value].text.text}:\${1|${temp}|}`);
+					}
+					result.push(item);
+				}
+			});
+			return { items: result };
+		}
+
 
 		prefix = prefix.substring(0, prefix.lastIndexOf("."));
 		let id = globalVar.marks.GetMarkId(prefix, scope, option);

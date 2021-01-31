@@ -443,16 +443,16 @@ export class BaseAnalyse {
 
 				// 如果是编译，插入新的文件
 				if (baseLine.comOrOp.text == ".INCLUDE" && params.globalVar.isCompile) {
+					baseLine.lineType = baseLine.mark ? BaseLineType.OnlyMark : BaseLineType.None;
+
 					let allText = fs.readFileSync(filePath.fsPath, { encoding: "utf8" });
 					let index = params.globalVar.GetFileIndex(filePath.fsPath);
 					let baseLines = BaseAnalyse.SplitAllText(allText, index);
 
-					params.allLines.splice(params.index, 1);
-
 					for (let i = baseLines.length - 1; i >= 0; i--)
-						params.allLines.splice(params.index, 0, baseLines[i]);
+						params.allLines.splice(params.index + 1, 0, baseLines[i]);
 
-					params.index--;
+					baseLine.ignore = true;
 				}
 				break;
 			}
@@ -534,7 +534,7 @@ export class BaseAnalyse {
 				baseLine.mark = params.globalVar.marks.AddMark(exp, option);
 
 				// 直接分析每一个内容，最后再分析标签是否存在
-				let lines: BaseLine[] = baseLine.tag;		
+				let lines: BaseLine[] = baseLine.tag;
 				let tagPart: TagDataGroup[] = [];
 				let datagroup = new DataGroup();
 				for (let i = 0; i < lines.length; i++) {

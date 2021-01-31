@@ -18,8 +18,8 @@ export function AsmLineAnalyse(params: MyParameters) {
 	let asmLine = params.allAsmLine[params.index];
 	switch (asmLine.lineType) {
 		case AsmLineType.None:
-			console.log("AsmLineType.None");
-			console.log(asmLine);
+			// console.log("AsmLineType.None");
+			// console.log(asmLine);
 			break;
 		case AsmLineType.OnlyMark:
 			(<Mark>asmLine.mark).value = params.globalVar.address;
@@ -67,6 +67,11 @@ function AnalyseInstrument(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro
 	if (!asmLine.SetAddress(globalVar))
 		return;
 
+	if (asmLine.mark) {
+		asmLine.mark.value = globalVar.address;
+		asmLine.mark = undefined;
+	}
+
 	let tag: AsmLineInstrumentTag = asmLine.tag;
 
 	if (tag.addressType[0] == AddressType.Implied) {
@@ -93,7 +98,7 @@ function AnalyseInstrument(globalVar: GlobalVar, asmLine: AsmLine, macro?: Macro
 				return;
 
 			asmLine.result = [];
-			asmLine.resultLength = InstrumentCodeMaxLength[tag.instrument.text]
+			asmLine.resultLength = GetAddressTypeMaxLength(tag.instrument.text, tag.addressType);
 			globalVar.AddressAdd(asmLine.resultLength);
 		} else {
 			let findType: AddressType = AddressType.NULL;
@@ -205,14 +210,15 @@ function AnalyseMacro(asmLine: AsmLine, params: MyParameters) {
 //#endregion 分析自定义函数
 
 //#region 获取兼容的最大寻址长度
-function GetAddressTypeMaxLength(addressTypes: AddressType[]): number {
-	let max: number | null = null;
+function GetAddressTypeMaxLength(instrument: string, addressTypes: AddressType[]): number {
+	let max: number = 0;
 	for (let i = 0; i < addressTypes.length; i++) {
-		if (max == null || max < AddressLength[addressTypes[i]])
+		if (max < AddressLength[addressTypes[i]])
 			max = AddressLength[addressTypes[i]];
 	}
-	return <number>max;
+	if (max > InstrumentCodeMaxLength[instrument])
+		max = InstrumentCodeMaxLength[instrument];
+
+	return max;
 }
 //#endregion 获取兼容的最大寻址长度
-
-

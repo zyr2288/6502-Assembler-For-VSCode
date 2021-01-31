@@ -3,6 +3,8 @@ import * as vscode from "vscode";
 import { BaseAnalyse } from "../Base/BaseAnalyse";
 import { Config } from "../Config";
 import { Project } from "../GlobalVar";
+import { Helper } from "../Helper/Helper";
+import { HelperUtils } from "../Helper/HelperUtils";
 import { CompileType, MyParameters } from "../Interface";
 import Language from "../Language";
 import { MyError } from "../MyError";
@@ -20,7 +22,11 @@ import { AsmLineAnalyse } from "./AsmLineAnalyse";
 export function CompileAllText(text: string, filePath: string): AsmLine[] {
 	MyError.ClearAllError();
 
-	let project = new Project();
+	let project = HelperUtils.GetFileProject(filePath)?.project;
+	if (!project)
+		project = new Project();
+
+	project.globalVar.marks.ClearAll();
 	MyError.UpdateErrorFilePaths(project.globalVar.filePaths);
 
 	project.globalVar.compileTimesMax = Config.ReadProperty(2, "compileTimes");
@@ -61,7 +67,6 @@ export function CompileAllText(text: string, filePath: string): AsmLine[] {
 				continue;
 
 			params.index = i;
-			console.log(params.allAsmLine[i]);
 
 			AsmLineAnalyse(params);
 			i = params.index;

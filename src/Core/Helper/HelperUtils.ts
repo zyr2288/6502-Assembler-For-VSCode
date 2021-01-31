@@ -17,6 +17,7 @@ import { CompileAllText, GetAsmResult, WriteIntoToFile, WriteToFile } from "../A
 
 export class HelperUtils {
 
+	private static statusBarItem: vscode.StatusBarItem;
 	private static freshThreadId: NodeJS.Timeout;
 	private static freshTime = 1000;
 	private static lastFreshFile: vscode.TextDocumentChangeEvent[] = [];
@@ -312,10 +313,12 @@ export class HelperUtils {
 			if (!vscode.window.activeTextEditor)
 				return;
 
+			HelperUtils.ShowStatueBar(`$(sync~spin) ${Language.Info.Compiling}`);
+			HelperUtils.ReadConfig();
+
 			let text = vscode.window.activeTextEditor.document.getText();
 			let filePath = vscode.window.activeTextEditor.document.uri;
 
-			HelperUtils.ReadConfig();
 
 			let lines = CompileAllText(text, filePath.fsPath);
 			let writeToFile = Config.ReadProperty("", "singleFile", "outFile");
@@ -327,15 +330,19 @@ export class HelperUtils {
 			if (copy) {
 				vscode.env.clipboard.writeText(Utils.ByteToString(GetAsmResult(lines)));
 			}
+
+			let showText = MyError.isError ? ` $(alert) ${Language.Info.CompileError}` : ` $(check) ${Language.Info.Finished}`;
+			HelperUtils.ShowStatueBar(showText, 3000);
 		});
 		//#endregion 绑定命令编译本文件
 
 		//#region 绑定命令编译主文件
 		vscode.commands.registerCommand(ExtensionCommandNames.CompliteMain, async () => {
-			HelperUtils.ReadConfig();
-
 			if (!vscode.workspace.workspaceFolders)
 				return;
+
+			HelperUtils.ShowStatueBar("$(sync~spin) 编译中");
+			HelperUtils.ReadConfig();
 
 			let projects: ProjectConfig[] = Config.ReadProperty([], "projects");
 			let needName = projects.length > 1;
@@ -345,6 +352,12 @@ export class HelperUtils {
 					continue;
 
 				let uri = Utils.GetFilePath(projects[i].entry, vscode.workspace.workspaceFolders[0].uri.fsPath);
+				if (!fs.existsSync(uri.fsPath)) {
+					let err = Utils.StringFormat(Language.ErrorMessage.EntryFileIsNotExist, uri.fsPath);
+					vscode.window.showErrorMessage(err);
+					continue;
+				}
+
 				let text = fs.readFileSync(uri.fsPath, { encoding: "utf8" });
 
 				let lines = CompileAllText(text, uri.fsPath);
@@ -362,7 +375,11 @@ export class HelperUtils {
 				}
 			}
 
-			vscode.env.clipboard.writeText(result);
+			if (!Utils.StringIsEmpty(result))
+				vscode.env.clipboard.writeText(result);
+
+			let showText = MyError.isError ? " $(alert) 编译有错误" : " $(check) 编译成功";
+			HelperUtils.ShowStatueBar(showText, 3000);
 		});
 		//#endregion 绑定命令编译主文件
 
@@ -549,5 +566,22 @@ export class HelperUtils {
 	}
 	//#endregion 给字符串左边补足位
 
+	//#region 状态栏显示条目
+	/**
+	 * 状态栏显示条目
+	 * @param text 显示的文本
+	 * @param timer 显示时间，0为一直显示
+	 */
+	static ShowStatueBar(text: string, timer: number = 0): void {
+		if (!this.statusBarItem)
+			this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+
+		this.statusBarItem.text = text;
+		this.statusBarItem.show();
+
+		if (timer > 0)
+			setTimeout(() => this.statusBarItem.hide(), timer);
+	}
+	//#endregion 状态栏显示条目
 
 }

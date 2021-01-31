@@ -33,6 +33,8 @@ export default class Language {
 
 		/**文件"{{0}}"不存在 */
 		FileIsNotExist: "文件\"{{0}}\"不存在",
+		/**入口文件"{{0}}"不存在 */
+		EntryFileIsNotExist: "入口文件\"{{0}}\"不存在",
 
 		/**请设定编译起始地址 */
 		SetStartAddress: "请设定编译起始地址",
@@ -66,6 +68,19 @@ export default class Language {
 		/**参数个数为"{{0}}" */
 		ParamtersCount: "参数个数为\"{{0}}\"",
 		/**文件"{{0}}"，第"{{1}}"行 */
-		Output: "文件\"{{0}}\"，第\"{{1}}\"行"
+		Output: "文件\"{{0}}\"，第\"{{1}}\"行",
+
+		/**编译中 */
+		Compiling: "编译中",
+		/**编译有错误 */
+		CompileError: "编译有错误",
+		/**编译完成 */
+		Finished: "编译完成",
+
+		/**6502插件载入中 */
+		LoadingPlugin: "6502插件载入中",
+		/**6502插件载入完成 */
+		PluginLoaded: "6502插件载入完成"
+
 	};
 }

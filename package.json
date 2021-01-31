@@ -5,6 +5,7 @@
 	},
 	"displayName": "6502 Assembler",
 	"description": "A simple 6502 assembler plugin for VSCode",
+	"publisher": "ZENG-GE",
 	"version": "0.1.0",
 	"icon": "syntaxes/fc.png",
 	"engines": {
@@ -79,8 +80,6 @@
 		],
 		"configurationDefaults": {
 			"[asm6502]": {
-				"editor.fontSize": 20,
-				"editor.tabSize": 8,
 				"editor.wordBasedSuggestions": false
 			}
 		}

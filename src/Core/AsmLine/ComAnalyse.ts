@@ -18,6 +18,9 @@ import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandDxGTag, AsmLineCommandD
  */
 export function ComAnalyse(params: MyParameters) {
 	let asmLine = params.allAsmLine[params.index];
+	if (asmLine.mark && asmLine.mark.value != undefined && params.globalVar.address != undefined)
+		asmLine.mark.value = params.globalVar.address;
+
 	let command: Word = asmLine.tag.command;
 	switch (command.text) {
 		case ".BASE": {
