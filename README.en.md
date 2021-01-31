@@ -58,7 +58,12 @@ Set the generated file address. The default is `.BASE 0`, here is not the same a
 For example: If set `.BASE $10`, the file will write from `$10`.
 
 > Note: If you use the `.BASE` command, after the `.ORG` command, otherwise the compilation will error.
+---
+### `.ORG`
+Set the start compilation address, for example: `.ORG $8000`, the compilation will start from `$8000`. It can also be used to `.ORG *` start compilation from the current address. However, you must know the current address, otherwise the compiler will report an error.
 
+> Note: If you use the `.BASE` command, after the `.ORG` command, otherwise the compilation will error.
+---
 ### `.DB`
 Represents bytes. Multiple arguments are separated by commas. If the byte is greater than $ FF (255), the compiler will report an error.
 
@@ -66,7 +71,7 @@ For example:
 ```
     .DB $40, 40, @01010010, >address
 ```
-
+---
 ### `.DW`
 Represents double-byte, first low and then high. If the double byte is greater than $ FFFF (65535), the compiler will report an error.
 
@@ -74,7 +79,7 @@ For example:
 ```
     .DW $40, 60000, @01010101, address
 ```
-
+---
 ### `.DBG` `.DWG` `.ENDD`
 Data group, get the data index.
 
@@ -90,6 +95,7 @@ For example:
     LDA data:.data3     ;A5 02
     LDA data:.data1:1   ;A5 03
 ```
+---
 ### `.HEX`
 Compact way of laying out a table of hex values. Only raw hex values are allowed, no expressions. Spaces can be used to separate numbers.
 
@@ -99,6 +105,7 @@ For example:
 ```
 The compilation result: `12 34 56 07 89`
 
+---
 ### `.IF` `.ELSEIF` `.ELSE` `.ENDIF`
 Process a block of code if an expression is true.
 
@@ -116,10 +123,10 @@ For example:
     ...
     .ENDIF
 ```
-
+---
 ### `.IFDEF` `.IFNDEF`
 Process a block of code if a symbol has been defined / not defined.
-
+--
 ### `.INCBIN`
 You can read the binary content of the reference file. Please fill in the relative path of the file in the double quotes.
 
@@ -127,11 +134,13 @@ For example:
 ```
     .INCBIN "Folder\file.bin"
 ```
+---
 ### `.INCLUDE`
 You can quote the file, please fill in the relative path of the file in double quotes. If there are also reference files in the reference file, please fill in relative to the main compilation file path. E.g:
 ```
     .INCLUDE "Folder\file.65s"
-```  
+```
+---
 ### `.MACRO` `.ENDM`
 Define a macro. Macro arguments are comma separated.
 
@@ -177,11 +186,7 @@ Example 2:
 ```
 The compilation result:`A5 03 A6 04 A5 06 85 06 A4 05`
 
-### `.ORG`
-Set the start compilation address, for example: `.ORG $8000`, the compilation will start from `$8000`. It can also be used to `.ORG *` start compilation from the current address. However, you must know the current address, otherwise the compiler will report an error.
-
-> Note: If you use the `.BASE` command, after the `.ORG` command, otherwise the compilation will error.
-
+---
 ### `.REPEAT` `.ENDR`
 Repeat a block of code a specified number of times.
 
@@ -196,6 +201,7 @@ For example:
 ```
 The compilation result is same as:`NOP ASL ASL ASL NOP ASL ASL ASL`
 
+---
 ### `.MSG`
 Display a message.
 
