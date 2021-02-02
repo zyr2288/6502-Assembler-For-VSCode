@@ -3,7 +3,6 @@ import * as vscode from "vscode";
 import { BaseAnalyse } from "../Base/BaseAnalyse";
 import { Config } from "../Config";
 import { Project } from "../GlobalVar";
-import { Helper } from "../Helper/Helper";
 import { HelperUtils } from "../Helper/HelperUtils";
 import { CompileType, MyParameters } from "../Interface";
 import Language from "../Language";
@@ -109,8 +108,7 @@ export function WriteToFile(asmLine: AsmLine[], filePath: string) {
 	let uri = Utils.GetFilePath(filePath, vscode.workspace.workspaceFolders[0].uri.fsPath);
 	let result = GetAsmResult(asmLine);
 	let binary = new Uint8Array(result);
-	let fileOpenId = fs.openSync(uri.fsPath, "w");
-	fs.writeSync(fileOpenId, binary, 0, binary.length, 0);
+	fs.writeFileSync(uri.fsPath, binary);
 }
 //#endregion 直接生成一个文件
 

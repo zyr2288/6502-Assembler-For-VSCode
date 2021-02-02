@@ -18,7 +18,7 @@ import { AsmLine, AsmLineCommandCommonTag, AsmLineCommandDxGTag, AsmLineCommandD
  */
 export function ComAnalyse(params: MyParameters) {
 	let asmLine = params.allAsmLine[params.index];
-	if (asmLine.mark && asmLine.mark.value != undefined && params.globalVar.address != undefined)
+	if (asmLine.mark && asmLine.mark.value == undefined && params.globalVar.address != undefined)
 		asmLine.mark.value = params.globalVar.address;
 
 	let command: Word = asmLine.tag.command;
@@ -222,13 +222,12 @@ function Command_Dx(asmLine: AsmLine, command: ".DB" | ".DW", params: MyParamete
 
 	let isFinished = true;
 	let option = { globalVar: params.globalVar, fileIndex: asmLine.fileIndex, lineNumber: asmLine.lineNumber, macro: params.macro };
-	if (!asmLine.result)
-		asmLine.result = [];
+	asmLine.result = [];
 
 	for (let i = 0; i < tag.part.length; i++) {
 
 		let result = ExpressionUtils.GetExpressionResult(tag.part[i], option, "number");
-		if (!result) {
+		if (result == null) {
 			isFinished = false;
 			break;
 		}

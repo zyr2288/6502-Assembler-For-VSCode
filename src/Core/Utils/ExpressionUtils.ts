@@ -253,8 +253,7 @@ export class ExpressionUtils {
 					if (!isNumber) {
 						let error = new MyError(Language.ErrorMessage.ExpressionError);
 						error.SetPosition({ startPosition: word.startColumn, length: word.text.length });
-						MyError.PushError(error);
-						return false;
+						throw error;
 					}
 
 					if (/^".*"$/g.test(word.text)) {
@@ -279,11 +278,13 @@ export class ExpressionUtils {
 							case ">":
 							case "<":
 								expressionPart[i].partType = ExpressionPartType.GetAndValue;
+								isNumber = false;
 								break;
 							case "*":
 								expressionPart[i].partType = ExpressionPartType.Address;
 								break;
 							case "-":
+								isNumber = false;
 								break;
 
 							default:
@@ -348,10 +349,10 @@ export class ExpressionUtils {
 				case ExpressionPartType.GetAndValue:
 					if ((<Word>expressionParts[i].tag).text == ">") {
 						tempWord.beforeStr = "((";
-						tempWord.afterStr = ") & 0xFF)";
+						tempWord.afterStr = ") >> 8 & 0xFF)";
 					} else {
 						tempWord.beforeStr = "((";
-						tempWord.afterStr = ") >> 8 & 0xFF)";
+						tempWord.afterStr = ") & 0xFF)";
 					}
 					tempWord.canUse = false;
 					break;

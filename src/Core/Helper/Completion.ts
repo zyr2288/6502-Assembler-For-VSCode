@@ -309,7 +309,6 @@ export class Completion extends vscode.CompletionItem {
 							temp += `${i},`;
 
 						temp = temp.substring(0, temp.length - 1);
-						// item.insertText = new vscode.SnippetString('Good ${1|morning,afternoon,evening|}. It is ${1}, right?');
 						item.insertText = new vscode.SnippetString(`${globalVar.marks.marks[value].text.text}:\${1|${temp}|}`);
 					}
 					result.push(item);
