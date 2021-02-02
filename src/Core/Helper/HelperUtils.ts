@@ -394,7 +394,7 @@ export class HelperUtils {
 
 		// 文件改名函数顺序 onDidRenameFiles -> onDidCreate -> onDidDelete
 
-		let watcher = vscode.workspace.createFileSystemWatcher(`**/*${FileExtension.extension}`, false, true, false);
+		let watcher = vscode.workspace.createFileSystemWatcher(`**/*${FileExtension.extension}`, false, false, false);
 		vscode.workspace.onDidRenameFiles(e => {
 			HelperUtils.fileChangeName = true;
 			e.files.forEach(value => {
@@ -423,6 +423,17 @@ export class HelperUtils {
 				});
 				value.globalVar.GetFileIndex(fileUri.fsPath);
 			});
+		});
+
+		watcher.onDidChange((fileUri) => {
+			if (!vscode.workspace.workspaceFolders)
+				return;
+
+			let config = Utils.GetFilePath(`.vscode${path.sep}${ConfigFile}`, vscode.workspace.workspaceFolders[0].uri.fsPath);
+			if(fileUri.fsPath != config.fsPath)
+				return;
+
+			Helper.HelperInit();
 		});
 
 		// 监视删除文件

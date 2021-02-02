@@ -26,6 +26,8 @@ export class Helper {
 
 		MyError.BindingErrorEvent(Helper.UpdateError, Helper.ClearAllError);
 
+		Helper.projects = [];
+
 		for (let i = 0; i < Config.config.projects.length; i++) {
 			if (!vscode.workspace.workspaceFolders)
 				continue;
