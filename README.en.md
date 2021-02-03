@@ -29,6 +29,9 @@ Plugin will create a file **6502-project.json** in **.vscode**
 ----
 ## Features
 
+### Compile
+In editor, click the right mouse button, **编译本文件** means **compile this file**, **编译主文件** means **compile entry file**
+
 ### Local label
 If a tag (not a 6502 compiler directive) is used in the file that starts with. (Dot), the valid range of the tag is only in this file. This facilitates the use of tags with the same name in different files.
 
