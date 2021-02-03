@@ -2,7 +2,7 @@ import { Macro } from "../Data/Macro";
 import { Mark } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
 import { CompileType, MyParameters, Word } from "../Interface";
-import Language from "../Language";
+import Language from "../../i18n";
 import { AddressLength, AddressType, ConfidentAddressValue, InstrumentCodeMaxLength, InstrumentTable } from "../MyConst";
 import { MyError } from "../MyError";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";

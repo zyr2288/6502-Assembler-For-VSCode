@@ -1,5 +1,5 @@
 import { Word } from "../Interface";
-import Language from "../Language";
+import Language from "../../i18n";
 import { TempMarkReg } from "../MyConst";
 import { MyError } from "../MyError";
 import { Utils } from "../Utils/Utils";

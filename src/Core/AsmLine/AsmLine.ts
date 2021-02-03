@@ -2,10 +2,9 @@ import { Macro } from "../Data/Macro";
 import { Mark } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
 import { TagDataGroup, Word } from "../Interface";
-import Language from "../Language";
+import Language from "../../i18n";
 import { AddressType } from "../MyConst";
 import { MyError } from "../MyError";
-import { Utils } from "../Utils/Utils";
 
 export interface AsmLineInstrumentTag {
 	instrument: Word;

@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
 import { Helper } from './Core/Helper/Helper';
-import Language from './Core/Language';
+import Language from './i18n';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+
+	Language.Init();
 
 	// 状态栏提示
 	let statusBarItem: vscode.StatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
@@ -17,7 +19,6 @@ export function activate(context: vscode.ExtensionContext) {
 	setTimeout(() => {
 		statusBarItem.hide();
 	}, 1000);
-
 }
 
 // this method is called when your extension is deactivated

@@ -4,7 +4,7 @@ import { Macro } from "../Data/Macro";
 import { Mark } from "../Data/Mark";
 import { CompileType, GlobalVar } from "../GlobalVar";
 import { MyParameters, Word } from "../Interface";
-import Language from "../Language";
+import Language from "../../i18n";
 import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";

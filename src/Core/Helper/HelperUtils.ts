@@ -8,7 +8,7 @@ import { Helper } from "./Helper";
 import { MyError } from "../MyError";
 import { BaseAnalyse } from "../Base/BaseAnalyse";
 import { Utils } from "../Utils/Utils";
-import Language from "../Language";
+import Language from "../../i18n";
 import { ExpressionUtils } from "../Utils/ExpressionUtils";
 import { MarkScope } from "../Data/Mark";
 import { Macro } from "../Data/Macro";
@@ -393,8 +393,12 @@ export class HelperUtils {
 	static CreateFileWatcher(): void {
 
 		// 文件改名函数顺序 onDidRenameFiles -> onDidCreate -> onDidDelete
+		if (!vscode.workspace.workspaceFolders)
+			return;
 
-		let watcher = vscode.workspace.createFileSystemWatcher(`**/*${FileExtension.extension}`, false, false, false);
+		let rp = new vscode.RelativePattern(vscode.workspace.workspaceFolders[0], `{**/*${FileExtension.extension},.vscode/${ConfigFile}}`);
+
+		let watcher = vscode.workspace.createFileSystemWatcher(rp, false, false, false);
 		vscode.workspace.onDidRenameFiles(e => {
 			HelperUtils.fileChangeName = true;
 			e.files.forEach(value => {
@@ -433,7 +437,7 @@ export class HelperUtils {
 			if(fileUri.fsPath != config.fsPath)
 				return;
 
-			Helper.HelperInit();
+			Helper.FreshAllProject();
 		});
 
 		// 监视删除文件

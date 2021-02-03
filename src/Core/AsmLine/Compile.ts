@@ -5,7 +5,7 @@ import { Config } from "../Config";
 import { Project } from "../GlobalVar";
 import { HelperUtils } from "../Helper/HelperUtils";
 import { CompileType, MyParameters } from "../Interface";
-import Language from "../Language";
+import Language from "../../i18n";
 import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
 import { Utils } from "../Utils/Utils";

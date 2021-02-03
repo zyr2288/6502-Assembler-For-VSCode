@@ -1,6 +1,6 @@
 import { GlobalVar } from "../GlobalVar";
 import { CompileType, ReplaceMark, Word } from "../Interface";
-import Language from "../Language";
+import Language from "../../i18n";
 import { Mark, MarkScope } from "../Data/Mark";
 import { TempMarkReg } from "../MyConst";
 import { MyError } from "../MyError";
@@ -52,7 +52,7 @@ export class ExpressionUtils {
 	): boolean {
 		try {
 			let result = ExpressionUtils.SplitExpression(text.text, text.startColumn);
-			if (!ExpressionUtils.CheckExpression(result.result))
+			if (!ExpressionUtils.CheckExpression(result.result, text.startColumn))
 				return false;
 
 			return ExpressionUtils.CheckExpressionMark(result.result, option);
@@ -80,7 +80,7 @@ export class ExpressionUtils {
 	): GetExpressionResultType[K] | null {
 		try {
 			let result = ExpressionUtils.SplitExpression(text.text, text.startColumn);
-			if (!result.result || !ExpressionUtils.CheckExpression(result.result))
+			if (!result.result || !ExpressionUtils.CheckExpression(result.result, text.startColumn))
 				return null;
 
 			let value = <GetExpressionResultType[K]>ExpressionUtils.GetExpressionValue(result.result, option, ignoreUnknowValue);
@@ -242,9 +242,8 @@ export class ExpressionUtils {
 	 * 检查表达式是否有误
 	 * @param expressionPart 所有表达式
 	 */
-	private static CheckExpression(expressionPart: ExpressionPart[]): boolean {
+	private static CheckExpression(expressionPart: ExpressionPart[], start = 0): boolean {
 		let isNumber = true;
-		let start = 0;
 		for (let i = 0; i < expressionPart.length; i++) {
 			switch (expressionPart[i].partType) {
 				/**标记 */

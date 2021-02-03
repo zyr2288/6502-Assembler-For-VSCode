@@ -21,12 +21,47 @@ export class Helper {
 
 	static async HelperInit() {
 
-		HelperUtils.ReadConfig();
 		HelperUtils.BingdingMessageEvent();
 
 		MyError.BindingErrorEvent(Helper.UpdateError, Helper.ClearAllError);
 
+		Helper.FreshAllProject();
+
+		// 更新折叠信息
+		vscode.languages.registerFoldingRangeProvider(FileExtension, { provideFoldingRanges: HelperUtils.ProvideFoldingRanges });
+
+		// 智能提示
+		if (Config.config.suggestion) {
+			Completion.Init();
+			vscode.languages.registerCompletionItemProvider(FileExtension, { provideCompletionItems: Completion.ProvideCompletionItem }, ".", ":");
+		}
+
+		// 自动大写与文件更新
+		vscode.workspace.onDidChangeTextDocument(HelperUtils.DocumentChange);
+		// 查找定义
+		vscode.languages.registerDefinitionProvider(FileExtension, { provideDefinition: HelperUtils.FindDefinition });
+		// 鼠标停留提示
+		vscode.languages.registerHoverProvider(FileExtension, { provideHover: HelperUtils.HoverHelp });
+		// 自定义高亮
+		vscode.languages.registerDocumentSemanticTokensProvider(
+			FileExtension,
+			{ provideDocumentSemanticTokens: HelperUtils.ProvideDocumentSemanticTokens },
+			HelperUtils.legend
+		);
+
+		HelperUtils.CreateFileWatcher();
+		HelperUtils.RegisterMyCommand();
+	}
+
+	//#region 更新所有项目信息
+	/**
+	 * 更新所有项目信息
+	 */
+	static async FreshAllProject() {
+		HelperUtils.ReadConfig();
+		
 		Helper.projects = [];
+		Helper.ClearAllError();
 
 		for (let i = 0; i < Config.config.projects.length; i++) {
 			if (!vscode.workspace.workspaceFolders)
@@ -56,32 +91,8 @@ export class Helper {
 			MyError.UpdateError();
 			Helper.projects[i] = project;
 		}
-
-		// 更新折叠信息
-		vscode.languages.registerFoldingRangeProvider(FileExtension, { provideFoldingRanges: HelperUtils.ProvideFoldingRanges });
-
-		// 智能提示
-		if (Config.config.suggestion) {
-			Completion.Init();
-			vscode.languages.registerCompletionItemProvider(FileExtension, { provideCompletionItems: Completion.ProvideCompletionItem }, ".", ":");
-		}
-
-		// 自动大写与文件更新
-		vscode.workspace.onDidChangeTextDocument(HelperUtils.DocumentChange);
-		// 查找定义
-		vscode.languages.registerDefinitionProvider(FileExtension, { provideDefinition: HelperUtils.FindDefinition });
-		// 鼠标停留提示
-		vscode.languages.registerHoverProvider(FileExtension, { provideHover: HelperUtils.HoverHelp });
-		// 自定义高亮
-		vscode.languages.registerDocumentSemanticTokensProvider(
-			FileExtension,
-			{ provideDocumentSemanticTokens: HelperUtils.ProvideDocumentSemanticTokens },
-			HelperUtils.legend
-		);
-
-		HelperUtils.CreateFileWatcher();
-		HelperUtils.RegisterMyCommand();
 	}
+	//#endregion 更新所有项目信息
 
 	//#region 更新错误提示
 	/**

@@ -4,7 +4,7 @@ import { Macro } from "../Data/Macro";
 import { Mark, MarkScope, MarkType } from "../Data/Mark";
 import { GlobalVar } from "../GlobalVar";
 import { Word, TagDataGroup } from "../Interface";
-import Language from "../Language";
+import Language from "../../i18n";
 import { Asm6502Regex, AsmCommandRegex } from "../MyConst";
 import { MyError } from "../MyError";
 import { AsmUtils } from "../Utils/AsmUtils";
@@ -342,7 +342,16 @@ export class BaseAnalyse {
 			case ".DW": {
 				let part = Utils.SplitWithRegex(/\s*\,\s*/g, 0, exp.text, exp.startColumn);
 				part.forEach(value => {
-					ExpressionUtils.CheckExpressionCurrect(value, option);
+					if (Utils.StringIsEmpty(value.text)) {
+						let err = new MyError(Language.ErrorMessage.ExpressionMiss)
+						err.SetPosition({
+							fileIndex: baseLine.fileIndex, lineNumber: baseLine.lineNumber,
+							startPosition: value.startColumn, length: value.text.length
+						});
+						MyError.PushError(err);
+					} else {
+						ExpressionUtils.CheckExpressionCurrect(value, option);
+					}
 				});
 				baseLine.tag = part;
 				break;

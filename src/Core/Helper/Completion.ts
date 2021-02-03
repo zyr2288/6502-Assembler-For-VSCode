@@ -274,6 +274,7 @@ export class Completion extends vscode.CompletionItem {
 			return { items: result };
 		}
 
+		// 自定义函数部分
 		if (helperType.macroName) {
 			let mark = globalVar.marks.FindMark(helperType.macroName, option);
 			if (mark && mark.tag) {
@@ -286,6 +287,8 @@ export class Completion extends vscode.CompletionItem {
 		}
 
 		let scope = prefix.startsWith(".") ? MarkScope.Local : MarkScope.Global;
+
+		// 数据组部分
 		if (trigger == ":") {
 			let part = Utils.SplitWithRegex(/:/g, 0, prefix);
 			part.splice(part.length - 1, 1);
@@ -328,6 +331,7 @@ export class Completion extends vscode.CompletionItem {
 			let item = new Completion(globalVar.marks.marks[markIDs[i]].text.text, vscode.CompletionItemKind.Field);				// 显示的文本
 			switch (trigger) {
 				case ".":
+					item.label = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
 					item.filterText = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
 					item.insertText = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
 					item.range = new vscode.Range(position.line, position.character - 1, position.line, position.character);
