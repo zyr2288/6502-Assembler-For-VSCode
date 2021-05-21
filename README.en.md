@@ -67,6 +67,10 @@ Set the start compilation address, for example: `.ORG $8000`, the compilation wi
 
 > Note: If you use the `.BASE` command, after the `.ORG` command, otherwise the compilation will error.
 ---
+### `.DEF`
+Define a constant, for example: `.DEF idefined $12`
+> Note: `temp = $12` can also be defined, but it can be repeated.
+---
 ### `.DB`
 Represents bytes. Multiple arguments are separated by commas. If the byte is greater than $ FF (255), the compiler will report an error.
 
