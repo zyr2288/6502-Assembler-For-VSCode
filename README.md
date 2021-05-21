@@ -2,6 +2,8 @@
 
 [English Version](https://github.com/zyr2288/6502-Assembler-For-VSCode/blob/master/README.en.md)
 
+> 如果新版造成错误过多，请使用老版本，版本0.0.17
+
 ## 项目设置
 当打开项目文件夹时，会在 **.vscode** 文件夹内生成 **6502-project.json** 文件
 ```json

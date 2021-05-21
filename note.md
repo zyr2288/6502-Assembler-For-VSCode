@@ -1,0 +1,1 @@
+编译时候，将 `package.json` 下的 `"main": "./out/extension.js"` 修改成 `"./dist/extension.js"`
