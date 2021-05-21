@@ -6,7 +6,11 @@
 	"displayName": "6502 Assembler",
 	"description": "A simple 6502 assembler plugin for VSCode",
 	"publisher": "ZENG-GE",
-	"version": "0.1.0",
+	"preview": true,
+	"version": "0.1.1",
+	"repository": {
+		"url": "https://github.com/zyr2288/6502-Assembler-For-VSCode"
+	},
 	"icon": "syntaxes/fc.png",
 	"engines": {
 		"vscode": "^1.52.0"

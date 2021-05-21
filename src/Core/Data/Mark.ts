@@ -349,6 +349,7 @@ export class Marks {
 				hash = ((hash << 5) - hash) + markScope;
 				break;
 			case MarkScope.Local:
+				hash = ((hash << 5) - hash) + markScope;
 				hash = ((hash << 5) - hash) + option.fileIndex;
 				break;
 		}
