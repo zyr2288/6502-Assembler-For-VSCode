@@ -373,6 +373,11 @@ export class BaseAnalyse {
 			}
 			//#endregion MACRO 命令
 
+			// 一些需要分析表达式的命令
+			case ".ORG":
+				ExpressionUtils.CheckExpressionCurrect(exp, option);
+				break;
+
 		}
 	}
 	//#endregion 最后分析
@@ -416,6 +421,7 @@ export class BaseAnalyse {
 					break;
 				}
 				baseLine.expression = part[1];
+				baseLine.lineType = BaseLineType.Assign;
 				break;
 			}
 			//#endregion DEF 命令

@@ -23,7 +23,7 @@
 	"activationEvents": [
 		"onLanguage:asm6502"
 	],
-	"main": "./dist/extension.js",
+	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
