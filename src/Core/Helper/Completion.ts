@@ -331,7 +331,7 @@ export class Completion extends vscode.CompletionItem {
 			let item = new Completion(globalVar.marks.marks[markIDs[i]].text.text, vscode.CompletionItemKind.Field);				// 显示的文本
 			switch (trigger) {
 				case ".":
-					item.label = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
+					item.label = `${globalVar.marks.marks[markIDs[i]].text.text}`;
 					item.filterText = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
 					item.insertText = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
 					item.range = new vscode.Range(position.line, position.character - 1, position.line, position.character);
@@ -385,8 +385,12 @@ export class Completion extends vscode.CompletionItem {
 	 */
 	private static GetCommand(prefix: string): CompletionType {
 		let match = new RegExp(AutoUpperCaseRegex, "ig").exec(prefix)
-		if (!match)
+		if (!match) {
+			if (prefix.includes("="))		// 若没有命令且前有等号
+				return CompletionType.Mark;
+
 			return CompletionType.Base;
+		}
 
 		let command = match[0].trim().toUpperCase();
 		switch (command) {

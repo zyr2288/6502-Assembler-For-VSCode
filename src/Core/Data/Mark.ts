@@ -425,15 +425,17 @@ export class Marks {
 
 				if (i == words.length - 1) {
 					mark.type = MarkType.Defined;
+					mark.lineNumber = option.lineNumber;
 					mark.comment = option.comment;
 					mark.value = option.value;
-					if (!this.markFiles[option.fileIndex])
-						this.markFiles[option.fileIndex] = [];
-
-					if (!this.markFiles[option.fileIndex].includes(mark.id))
-						this.markFiles[option.fileIndex].push(mark.id);
 				}
 				this.marks[id] = mark;
+				if (!this.markFiles[option.fileIndex])
+					this.markFiles[option.fileIndex] = [];
+
+				if (!this.markFiles[option.fileIndex].includes(mark.id))
+					this.markFiles[option.fileIndex].push(mark.id);
+
 				tempMarks.push(mark);
 			} else {
 				if (i == words.length - 1) {
@@ -446,6 +448,8 @@ export class Marks {
 						MyError.PushError(error);
 					} else {
 						this.marks[id].value = option.value;
+						this.marks[id].lineNumber = option.lineNumber;
+						this.marks[id].comment = option.comment;
 						this.marks[id].type = MarkType.Defined;
 					}
 				}
