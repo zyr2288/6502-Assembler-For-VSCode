@@ -375,6 +375,10 @@ export class BaseAnalyse {
 
 			// 一些需要分析表达式的命令
 			case ".ORG":
+			case ".BASE":
+			case ".REPEAT":
+			case ".IF":
+			case ".ELSEIF":
 				ExpressionUtils.CheckExpressionCurrect(exp, option);
 				break;
 
