@@ -57,7 +57,7 @@ export class ExpressionUtils {
 
 			return ExpressionUtils.CheckExpressionMark(result.result, option);
 		} catch (error) {
-			let err: MyError = error;
+			let err = <MyError>error;
 			err.SetPosition({ fileIndex: option.fileIndex, lineNumber: option.lineNumber });
 			MyError.PushError(err);
 			return false;

@@ -7,13 +7,13 @@
 	"description": "A simple 6502 assembler plugin for VSCode",
 	"publisher": "ZENG-GE",
 	"preview": true,
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"repository": {
 		"url": "https://github.com/zyr2288/6502-Assembler-For-VSCode"
 	},
 	"icon": "syntaxes/fc.png",
 	"engines": {
-		"vscode": "^1.52.0"
+		"vscode": "^1.60.0"
 	},
 	"categories": [
 		"Programming Languages",
@@ -23,7 +23,7 @@
 	"activationEvents": [
 		"onLanguage:asm6502"
 	],
-	"main": "./out/extension.js",
+	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
@@ -98,17 +98,17 @@
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
 		"@types/mocha": "^8.2.3",
-		"@types/node": "^14.17.6",
-		"@types/vscode": "^1.58.1",
+		"@types/node": "^14.17.15",
+		"@types/vscode": "^1.60.0",
 		"@typescript-eslint/eslint-plugin": "^3.8.0",
 		"@typescript-eslint/parser": "^3.8.0",
-		"eslint": "^7.31.0",
+		"eslint": "^7.32.0",
 		"glob": "^7.1.7",
 		"mocha": "^8.4.0",
 		"ts-loader": "^8.3.0",
-		"typescript": "^4.3.5",
+		"typescript": "^4.4.3",
 		"vscode-test": "^1.6.1",
-		"webpack": "^5.47.0",
-		"webpack-cli": "^4.7.2"
+		"webpack": "^5.52.1",
+		"webpack-cli": "^4.8.0"
 	}
 }
