@@ -69,9 +69,10 @@ export class Completion extends vscode.CompletionItem {
 		// 添加命令
 		for (let i = 0; i < AssemblerCommands.length; i++) {
 			let item = new Completion(AssemblerCommands[i], vscode.CompletionItemKind.Method);
+			let insertText = AssemblerCommands[i].substring(1);
 			switch (AssemblerCommands[i]) {
 				case ".INCBIN":
-					item.insertText = new vscode.SnippetString(AssemblerCommands[i] + " \"${1:}\"");
+					item.insertText = new vscode.SnippetString(insertText + " \"${1:}\"");
 					item.command = {
 						title: "运行相对路径智能提示",
 						command: ExtensionCommandNames.GetThisFilePath,
@@ -79,7 +80,7 @@ export class Completion extends vscode.CompletionItem {
 					};
 					break;
 				case ".INCLUDE":
-					item.insertText = new vscode.SnippetString(AssemblerCommands[i] + " \"${1:}\"");
+					item.insertText = new vscode.SnippetString(insertText + " \"${1:}\"");
 					item.command = {
 						title: "运行相对路径智能提示",
 						command: ExtensionCommandNames.GetThisFilePath,
@@ -88,18 +89,18 @@ export class Completion extends vscode.CompletionItem {
 					break;
 				case ".DBG":
 				case ".DWG":
-					item.insertText = new vscode.SnippetString(AssemblerCommands[i] + " ${1:name}\n${2:}\n.ENDD");
+					item.insertText = new vscode.SnippetString(insertText + " ${1:name}\n${2:}\n.ENDD");
 					break;
 				case ".IF":
 				case ".IFDEF":
 				case ".IFNDEF":
-					item.insertText = new vscode.SnippetString(AssemblerCommands[i] + " ${1:}\n${2:}\n.ENDIF");
+					item.insertText = new vscode.SnippetString(insertText + " ${1:}\n${2:}\n.ENDIF");
 					break;
 				case ".REPEAT":
-					item.insertText = new vscode.SnippetString(AssemblerCommands[i] + " ${1:}\n${2:}\n.ENDR");
+					item.insertText = new vscode.SnippetString(insertText + " ${1:}\n${2:}\n.ENDR");
 					break;
 				case ".MACRO":
-					item.insertText = new vscode.SnippetString(AssemblerCommands[i] + " ${1:}\n${2:}\n.ENDM");
+					item.insertText = new vscode.SnippetString(insertText + " ${1:}\n${2:}\n.ENDM");
 					break;
 				case ".BASE":
 				case ".ORG":
@@ -108,7 +109,10 @@ export class Completion extends vscode.CompletionItem {
 				case ".DB":
 				case ".DW":
 				case ".HEX":
-					item.insertText = new vscode.SnippetString(AssemblerCommands[i] + " ");
+					item.insertText = new vscode.SnippetString(insertText + " ");
+					break;
+				default:
+					item.insertText = new vscode.SnippetString(insertText + "\n");
 					break;
 			}
 			item.sortText = "1";
@@ -332,9 +336,10 @@ export class Completion extends vscode.CompletionItem {
 			switch (trigger) {
 				case ".":
 					item.label = `${globalVar.marks.marks[markIDs[i]].text.text}`;
-					item.filterText = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
-					item.insertText = `.${globalVar.marks.marks[markIDs[i]].text.text}`;
-					item.range = new vscode.Range(position.line, position.character - 1, position.line, position.character);
+					item.filterText = `${globalVar.marks.marks[markIDs[i]].text.text}`;
+					item.insertText = `${globalVar.marks.marks[markIDs[i]].text.text}`;
+					// item.range = new vscode.Range(position.line, position.character - 1, position.line, position.character);
+					item.kind = vscode.CompletionItemKind.Property;
 					break;
 			}
 			item.detail = globalVar.marks.marks[markIDs[i]].comment;
