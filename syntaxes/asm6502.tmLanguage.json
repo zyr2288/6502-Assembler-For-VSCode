@@ -34,7 +34,13 @@
 		"strings": {
 			"name": "string.quoted.double.asm6502",
 			"begin": "\"",
-			"end": "\""
+			"end": "\"",
+			"patterns": [
+				{
+					"match": "\\\\\"",
+					"name": "constant.character.escape.asm6502"
+				}
+			]
 		},
 		"asmCommand": {
 			"name": "keyword.other.asm6502",
