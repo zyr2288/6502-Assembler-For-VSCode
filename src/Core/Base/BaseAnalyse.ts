@@ -333,6 +333,23 @@ export class BaseAnalyse {
 			//#region DBG/DWG 命令
 			case ".DBG":
 			case ".DWG": {
+				let tags: { lineNumber: number, word: Word }[] = baseLine.tag;
+				if (tags == null || tags.length == 0)
+					break;
+
+				for (let i = 0; i < tags.length; i++) {
+					let mark = params.globalVar.marks.FindMark(tags[i].word.text, option);
+					if (!mark)
+					{
+						let err = new MyError(Language.ErrorMessage.MarkMiss, `"${tags[i].word.text}"`);
+						err.SetPosition({
+							fileIndex: option.fileIndex, lineNumber: tags[i].lineNumber,
+							startPosition: tags[i].word.startColumn, length: tags[i].word.text.length
+						});
+						MyError.PushError(err);
+						return;
+					}
+				}
 				break;
 			}
 			//#endregion DBG/DWG 命令
@@ -556,6 +573,7 @@ export class BaseAnalyse {
 				let lines: BaseLine[] = baseLine.tag;
 				let tagPart: TagDataGroup[] = [];
 				let datagroup = new DataGroup();
+				datagroup.fileIndex = option.fileIndex;
 				for (let i = 0; i < lines.length; i++) {
 					let part = Utils.SplitWithRegex(/\s*\,\s*/g, 0, lines[i].text.text, lines[i].text.startColumn);
 					if (Utils.StringIsEmpty(part[part.length - 1].text))
@@ -568,6 +586,7 @@ export class BaseAnalyse {
 					}
 				}
 				(<Mark>baseLine.mark).tag = datagroup;
+				datagroup.memberWords = tagPart;
 				baseLine.tag = tagPart;		// 分析完毕，把所有Part存起来，方便给AsmLine直接计算
 				break;
 			}

@@ -97,6 +97,9 @@ export class ExpressionUtils {
 	}
 	//#endregion 获取表达式结果
 
+	//#region 获取含字符串的表达式结果
+	//#endregion 获取含字符串的表达式结果
+
 	//#region 检查表达式中的Mark是否存在
 	/**
 	 * 检查表达式中的Mark是否存在
@@ -217,6 +220,19 @@ export class ExpressionUtils {
 						result.push({ partType: ExpressionPartType.Expression, tag: temp.result });
 						loop += temp.loop + 1;
 						markStart += temp.loop + 2;
+					}
+					break;
+				case "\"":
+					index = ExpressionUtils.FindNextPatch("\"", "", text, loop + 1, '\\"');
+					if (index < 0) {
+						let error = new MyError(Language.ErrorMessage.ExpressionError);
+						error.SetPosition({ startPosition: loop, length: 1 });
+						throw error;
+					} else {
+						let mark: ExpressionPart = { partType: ExpressionPartType.String, tag: { text: text.substring(markStart, index), startColumn: markStart + startPos } };
+						result.push(mark);
+						loop += (<Word>mark.tag).text.length;
+						markStart = loop + 1;
 					}
 					break;
 				case ")":
@@ -430,10 +446,25 @@ export class ExpressionUtils {
 	 * @param input 输入的字符串
 	 * @param start 要查找的字符串起始位置
 	 */
-	private static FindNextPatch(match: string, leftMatch: string, input: string, start: number) {
+	private static FindNextPatch(match: string, leftMatch: string, input: string, start: number, ignore?: string) {
 		let result = -1;
 		let deep = 0;
 		for (let i = start; i < input.length; i++) {
+			if (ignore) {
+				let j = 0;
+				while (i + j < input.length && j < ignore.length) {
+					if (input[i] != ignore[j])
+						break;
+
+					i++;
+					j++;
+				}
+				if (j == ignore.length) {
+					i--
+					continue;
+				}
+			}
+
 			if (input[i] == leftMatch) {
 				deep++;
 			} else if (input[i] == match) {
@@ -452,8 +483,9 @@ export class ExpressionUtils {
 	//#region 增加标记
 	/**
 	 * 增加标记
-	 * @param text 文本
-	 * @param markStart 截取文本的起始位置
+	 * @param result 表达式部分
+	 * @param text 表达式文本
+	 * @param markStart 表达式起始位置
 	 * @param markEnd 截取文本结束位置
 	 * @param startColumn 文本起始偏移
 	 */

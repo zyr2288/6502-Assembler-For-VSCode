@@ -308,7 +308,11 @@ export class Completion extends vscode.CompletionItem {
 			let temp = new Set(data.memberIds);
 			temp.forEach(value => {
 				if (globalVar.marks.marks[value]) {
-					let item = new Completion(globalVar.marks.marks[value].text.text, vscode.CompletionItemKind.EnumMember);
+					let insertText = globalVar.marks.marks[value].text.text;
+					if (globalVar.marks.marks[value].scope == MarkScope.Local)
+						insertText = "." + insertText;
+
+					let item = new Completion(insertText, vscode.CompletionItemKind.EnumMember);
 					let datas = data?.memberIds.filter(dataValue => { return dataValue == value });
 					if (datas && datas.length > 1) {
 						let temp = "";
@@ -316,7 +320,8 @@ export class Completion extends vscode.CompletionItem {
 							temp += `${i},`;
 
 						temp = temp.substring(0, temp.length - 1);
-						item.insertText = new vscode.SnippetString(`${globalVar.marks.marks[value].text.text}:\${1|${temp}|}`);
+						item.insertText = new vscode.SnippetString(`${insertText}:\${1|${temp}|}`);
+
 					}
 					result.push(item);
 				}

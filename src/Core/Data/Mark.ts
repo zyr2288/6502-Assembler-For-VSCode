@@ -7,7 +7,7 @@ import { DataGroup } from "./DataGroup";
 import { Macro } from "./Macro";
 
 /**标签作用域 */
-export enum MarkScope { None, Global, Local, Macro }
+export enum MarkScope { None, Global, Local, Macro, Nameless }
 /**标签类型 */
 export enum MarkType { None, Defined, Variable, Macro }
 
@@ -209,16 +209,19 @@ export class Marks {
 				part2 = parseInt(part[2].text);
 
 			let datagroup: DataGroup = this.marks[id].tag;
-			let value = datagroup.FindIndex(this, part[1].text, part2);
+			let value = datagroup.FindIndex(this, part[1], part2, option);
+			if (value == undefined)
+				return;
+
 			let mark: Mark = {
 				id: this.GetMarkId(part[0].text, MarkScope.Global, option),
 				parentId: -1,
 				childrenIDs: [],
-				fileIndex: option.fileIndex,
-				lineNumber: option.lineNumber,
+				fileIndex: datagroup.fileIndex,
+				lineNumber: datagroup.memberWords[value].lineNumber,
 				scope: MarkScope.Global,
 				type: MarkType.Defined,
-				text: { startColumn: 0, text: "" },
+				text:datagroup.memberWords[value].word,
 				value: value,
 			}
 			return mark;
@@ -231,6 +234,17 @@ export class Marks {
 		return this.marks[id];
 	}
 	//#endregion 查询标记
+
+	//#region 获取标记类型
+	/**获取标记类型 */
+	CheckMarkType(text: string): MarkScope {
+		let regex = new RegExp(TempMarkReg, "g").exec(text);
+		if (regex)
+			return MarkScope.Nameless;
+
+		return text.startsWith(".") ? MarkScope.Local : MarkScope.Global;
+	}
+	//#endregion 获取标记类型
 
 	//#region 删除标记
 	/**
