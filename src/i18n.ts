@@ -7,6 +7,7 @@ interface ErrorMessage {
 	MarkMissBtOps: string;
 
 	DontSupportMultiArray: string;
+	DataGroupDontSupportNamelessLabel: string;
 
 	ExpressionError: string;
 	ExpressionMiss: string;
@@ -120,6 +121,10 @@ export default class Language {
 		DontSupportMultiArray: {
 			"en": "",
 			"zh-cn": "不支持数组"
+		},
+		DataGroupDontSupportNamelessLabel: {
+			"en": "",
+			"zh-cn": "数据组不支持临时标签"
 		},
 
 		/**找不到匹配指令 */
