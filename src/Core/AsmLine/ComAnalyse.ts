@@ -202,11 +202,12 @@ function Command_Incbin(expression: Word, params: MyParameters) {
 	if (!asmLine.result)
 		asmLine.result = [];
 
-	fs.readFileSync(uri.path).forEach(
+	fs.readFileSync(uri.fsPath).forEach(
 		// @ts-ignore
 		value => asmLine.result.push(value)
 	);
 
+	asmLine.SetAddress(params.globalVar);
 	asmLine.resultLength = asmLine.result.length;
 	asmLine.isFinished = true;
 	params.globalVar.AddressAdd(asmLine.resultLength);
