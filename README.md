@@ -1,5 +1,8 @@
 # 6502编译器插件
 
+> 我已放弃更新该版本的更新，新开了一个坑，[新坑地址](https://github.com/zyr2288/zg-assembler)
+> 可以在搜索插件 ZG Assembler，该插件能提供更好的体验
+
 [English Version](https://github.com/zyr2288/6502-Assembler-For-VSCode/blob/master/README.en.md)
 
 > 如果新版造成错误过多，请使用老版本，版本0.0.17

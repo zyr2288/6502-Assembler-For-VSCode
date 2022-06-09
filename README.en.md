@@ -1,5 +1,8 @@
 # 6502 compiler plugin
 
+> I create a new plugin, named "ZG Assembler"
+> [Link](https://github.com/zyr2288/zg-assembler)
+
 ## Project settings
 Plugin will create a file **6502-project.json** in **.vscode**
 ```json
